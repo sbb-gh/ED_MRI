@@ -18,11 +18,16 @@ This code provides:
 
 ***Environment***
 
-- Create an environment e.g install conda and use
-    $ conda create -n 2023_ICLR_ID6100 python=3.6
-- Install requirements from requirements file e.g.
-    - $ pip install -r requirements.txt
-- We run the code (on gpu) with cuda 10.1 gcc 8.3
+TODO python 3.6* does not install on MAC 
+TODO add links to webs
+
+- We tested with python version 3.6.13 and the modules in requirements.txt files
+- Installation options:
+    - Create conda environment and use: $ conda create -n 2023_ICLR_ID6100 python=3.6.13
+    - Install with pip, i.e. install python then $ pip install -r requirements.txt
+    - TODO add pyenv version
+    - TODO virtual environment
+- If GPU is required (recommeneded), code runs on cuda 10.1 gcc 8.3
 
 
 ***Data***
@@ -39,7 +44,7 @@ This code provides:
 - The files:
     ./run_files/JOFSTO_verdict_simulations_papertable2.bash
     ./run_files/JOFSTO_noddi_simulations_papertable2.bash
-    are the exact scripts to produce our results intable 2
+    are the exact scripts tpyo produce our results intable 2
 
 
 ***Other Files***
