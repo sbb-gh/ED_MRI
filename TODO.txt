@@ -1,0 +1,11 @@
+Stefano
+- Data generation only positive values
+- Email Emma Thompson, Geoff Parker
+- Overview for text files -> Also do in MATLAB
+- Example where load data file and run
+- High-level example of data format, in tutorial and readme
+
+Paddy
+- Add comments to utils/simulations.py -- maybe split the file into two?
+- Consider matlab example where you save the data output and load JOFSTO
+- Speak to Lizzie

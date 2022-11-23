@@ -62,14 +62,8 @@ def noddi(nsamples, acq_scheme):
     Parameters_NODDI_dmipy = Parameters_NODDI_dmipy.astype(np.float32)
     Parameters_NODDI_all = Parameters_NODDI_all.astype(np.float32)
 
-    return (
-        Signals_NODDI,
-        Parameters_NODDI,
-        NODDI_mod,
-        acq_scheme,
-        Parameters_NODDI_dmipy,
-        Parameters_NODDI_all,
-    )
+    return Signals_NODDI, Parameters_NODDI
+
 
 
 def verdict_model():
@@ -135,14 +129,7 @@ def verdict(nsamples, acq_scheme, parameters=None):
 
     Parameters_VERDICT = verdict_params_norm(Parameters_VERDICT)
 
-    return (
-        Signals_VERDICT,
-        Parameters_VERDICT,
-        VERDICT_mod,
-        acq_scheme,
-        Parameters_VERDICT_dmipy,
-        Parameters_VERDICT_all,
-    )
+    return Signals_VERDICT, Parameters_VERDICT
 
 
 def add_noise(data, scale=0.02):
