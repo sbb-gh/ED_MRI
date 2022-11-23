@@ -1,9 +1,10 @@
 Stefano
 - Data generation only positive values
-- Email Emma Thompson, Geoff Parker
 - Overview for text files -> Also do in MATLAB
 - Example where load data file and run
 - High-level example of data format, in tutorial and readme
+- TODO code automated cleanup
+- Cleanup JOFSTO, remove unncecessary fluff, add accessability to sections
 
 Paddy
 - Add comments to utils/simulations.py -- maybe split the file into two?
