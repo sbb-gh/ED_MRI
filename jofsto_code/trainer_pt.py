@@ -144,7 +144,9 @@ class Trainer:
         with torch.no_grad():
             out = []
             loader = torch.utils.data.DataLoader(
-                Dataset(data_x), batch_size=self.dataloader_params["batch_size"], shuffle=False
+                Dataset(data_x),
+                batch_size=self.dataloader_params["batch_size"],
+                shuffle=False,
             )
             for i, x in enumerate(loader):
                 x = x.to(self.device)
@@ -157,7 +159,7 @@ class Trainer:
 
     def train(self, train_x, train_y, val_x, val_y, test_x, test_y, **kwargs):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print("Run training on:",self.device,flush=True)
+        print("Run training on:", self.device, flush=True)
         self.create_model()
         self.create_optimizer()
         self.create_dataloaders(train_x, train_y, val_x, val_y)

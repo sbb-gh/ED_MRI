@@ -1,12 +1,15 @@
 Stefano
-- Data generation only positive values
 - Overview for text files -> Also do in MATLAB
-- Example where load data file and run
-- High-level example of data format, in tutorial and readme
-- TODO code automated cleanup
+- High-level example of data format, in tutorial and readme, maybe better to have examples ??
 - Cleanup JOFSTO, remove unncecessary fluff, add accessability to sections
+- Last cell in tutorial, normalization
+[- TODO code automated cleanup (black, PEP8)]
 
 Paddy
 - Add comments to utils/simulations.py -- maybe split the file into two?
 - Consider matlab example where you save the data output and load JOFSTO
 - Speak to Lizzie
+
+Both
+- Discuss how to integrate MATLAB into library
+- MATLAB-only version -- (i) Call python from MATLAB, (ii) Implement JOFSTO from MATLAB

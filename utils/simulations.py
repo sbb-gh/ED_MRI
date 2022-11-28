@@ -65,7 +65,6 @@ def noddi(nsamples, acq_scheme):
     return Signals_NODDI, Parameters_NODDI
 
 
-
 def verdict_model():
     # fixed to verdict value
     sphere = sphere_models.S4SphereGaussianPhaseApproximation(diffusion_constant=0.9e-9)

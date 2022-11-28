@@ -11,6 +11,7 @@ from .utils import (
     set_random_seed,
 )
 
+
 def return_argparser():
     parser = argparse.ArgumentParser(description="JOFSTO")
     paradd = parser.add_argument
@@ -20,8 +21,13 @@ def return_argparser():
     paradd("--data_train_subjs", type=str, nargs="*", default=["train"])
     paradd("--data_val_subjs", type=str, nargs="*", default=["val"])
     paradd("--data_test_subjs", type=str, nargs="*", default=["test"])
-    paradd("--data_normalization",type=str,default="original-measurement")
-    paradd("--epochs_fix_sigma",type=int,default=25,help="Fix score after epoch, E_1 in paper")
+    paradd("--data_normalization", type=str, default="original-measurement")
+    paradd(
+        "--epochs_fix_sigma",
+        type=int,
+        default=25,
+        help="Fix score after epoch, E_1 in paper",
+    )
     paradd(
         "--epochs_decay_sigma",
         type=int,
@@ -35,7 +41,7 @@ def return_argparser():
         default=10,
         help="Progressively modify mask across number epochs, E_3 - E_2 in paper",
     )
-    paradd("--total_epochs",type=int,default=10000,help="E in paper")
+    paradd("--total_epochs", type=int, default=10000, help="E in paper")
     paradd("--learning_rate", type=float, default=0.0001)
     paradd("--batch_size", type=int, default=1500)
     paradd("--random_seed_value", type=int, default=0, help="Random seed value")
@@ -53,9 +59,10 @@ def return_argparser():
         nargs="*",
         type=int,
         help="Evaluate at this C",
-        )
+    )
     paradd(
-        "--num_units_score",type=int,
+        "--num_units_score",
+        type=int,
         nargs="*",
         default=[1000],
         help="Intermediate units in Score Network S, [-1] to switch off",
@@ -74,15 +81,24 @@ def return_argparser():
         help="Fit the model parameters on HCP data",
     )
 
-    paradd("--score_activation",type=str,default="doublesigmoid",help="Activation function for score \sigma in paper")
+    paradd(
+        "--score_activation",
+        type=str,
+        default="doublesigmoid",
+        help="Activation function for score \sigma in paper",
+    )
 
     return parser
 
-def run(args,pass_data=None):
 
-    assert args.epochs_fix_sigma + args.epochs_decay_sigma + args.epochs_decay < args.total_epochs
+def run(args, pass_data=None):
 
-    data = create_data_norm(**args.__dict__,pass_data=pass_data)
+    assert (
+        args.epochs_fix_sigma + args.epochs_decay_sigma + args.epochs_decay
+        < args.total_epochs
+    )
+
+    data = create_data_norm(**args.__dict__, pass_data=pass_data)
     out_base_dir, save_model_path = create_out_dirs(
         args.out_base, args.proj_name, args.run_name
     )

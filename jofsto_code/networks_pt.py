@@ -2,8 +2,10 @@
 
 
 import torch
-#import .layers_pt as layers_pt
+
+# import .layers_pt as layers_pt
 from .layers_pt import fcnet_pt, get_score_activation, DownsamplingMultLayer
+
 
 class jofsto(torch.nn.Module):
     def __init__(

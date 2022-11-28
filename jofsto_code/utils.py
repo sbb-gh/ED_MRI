@@ -51,7 +51,7 @@ def create_out_dirs(
     proj_base_name,
     proj_name,
 ):
-    #if out_base is not None and len(proj_base_name) is not None:
+    # if out_base is not None and len(proj_base_name) is not None:
     if len(out_base) > 0 and len(proj_base_name) > 0:
         out_base_dir = os.path.join(out_base, proj_base_name)
         os.makedirs(out_base_dir, exist_ok=True)
@@ -61,7 +61,7 @@ def create_out_dirs(
         print("Did not create output base directory")
 
     if len(out_base) > 0 and len(proj_base_name) > 0:
-        #if out_base is not None and proj_base_name is not None:
+        # if out_base is not None and proj_base_name is not None:
         save_model_path = os.path.join(out_base_dir, proj_name)
         # os.makedirs(save_model_path,exist_ok=True)
         print("Model saved", save_model_path, flush=True)
@@ -93,8 +93,8 @@ def create_train_val_test(
 def calc_affine_norm(
     datatrain,
     data_normalization,
-    prctsig, # Percentile for data normalization
-    smallsig, # Clip all values strictly less than
+    prctsig,  # Percentile for data normalization
+    smallsig,  # Clip all values strictly less than
 ):
 
     if data_normalization == "original":
