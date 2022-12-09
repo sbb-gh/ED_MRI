@@ -1,10 +1,10 @@
-Helper file to install required parackages.
+Helper file to install required packages.
 
 Running JOFSTO requires:
     - pytorch
     - numpy
 
-The code can run on GPU or on the CPU only (much slower).
+The code can run on GPU, or on the CPU only (much slower).
 Please see [link](https://pytorch.org/) for PyTorch installation details.
 
 We used python=3.6.13, pytorch==1.4.0, numpy==1.19.4, running on GPU with cuda 10.1, gcc 8.3.

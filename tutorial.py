@@ -1,14 +1,16 @@
 """
-(c) Stefano B. Blumberg, do not redistribute or modify
-
 Python-based tutorial for <Add paper link>
+
+We encourage users to explore different data generation, preprocessing and JOFSTO hyperparameters.
+
+TODO Code runs on gpu automatically, detection torch.cuda_is_available
 
 Overview for cells:
     - Choose data size splits 2
     - Generate data examples 3-A/B/C
     - Data format for JOFSTO 4
     - Option to pass data directly, or save to disk and load 5-A/B
-    - JOFSTO hyperparameters 6,7,8
+    - JOFSTO hyperparameters 6,7,8 in order of importance.
     - Data normalization 9
 """
 
@@ -90,7 +92,7 @@ data = dict(
 jofsto_args = []
 parser = return_argparser()  # JOFSTO hyperparameters here
 
-
+'''
 ########## (5-A)
 # Option to save data to disk, and JOFSTO load
 
@@ -99,6 +101,7 @@ np.save(data_fil, data)
 print("Saving data as", data_fil)
 pass_data = None
 jofsto_args.extend(["--data_fil", data_fil])
+'''
 
 
 ########## (5-B)
