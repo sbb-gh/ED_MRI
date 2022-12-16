@@ -10,8 +10,9 @@ Overview for cells:
     - Generate data examples 3-A/B/C
     - Data format for JOFSTO 4
     - Option to pass data directly, or save to disk and load 5-A/B
-    - JOFSTO hyperparameters 6,7,8 in order of importance.
-    - Data normalization 9
+    - Option to save output 6
+    - JOFSTO hyperparameters 7,8,9 in order of importance.
+    - Data normalization 10
 """
 
 
@@ -113,6 +114,16 @@ pass_data = data
 
 
 ########## (6)
+# Option to save the output
+'''
+# Output saved as dict in save_fil=<out_base>/<proj_name>/results/<run_name>_all.npy
+# Load with np.load(str(save_fil),allow_pickle=True).item()
+jofsto_args["out_base"] = <ADD>
+jofsto_args["proj_name"] = <ADD>
+jofsto_args["run_name"] = <ADD>
+'''
+
+########## (7)
 # Simplest version of JOFSTO, modifying the most important hyperparameters
 
 
@@ -131,7 +142,7 @@ jofsto_args["num_units_task"] = [1000, 1000]
 run(args=jofsto_args, pass_data=pass_data)
 
 
-########## (7)
+########## (8)
 # Modify more JOFSTO hyperparameters, less important, may change results
 
 # Fix score after epoch, E_1 in paper
@@ -146,7 +157,7 @@ jofsto_args["epochs_decay"] = 10
 run(args=jofsto_args, pass_data=pass_data)
 
 
-########## (8)
+########## (9)
 # Deep learning training hyperparameters for inner loop
 
 # Training epochs per step, set large to trigger early stopping
@@ -161,7 +172,7 @@ jofsto_args["batch_size"] = 1500
 run(args=jofsto_args, pass_data=pass_data)
 
 
-########## (9)
+########## (10)
 # TODO data normalization
 #   (i) pre-processing all data
 #   (ii) ./utils/calc_affine_norm
