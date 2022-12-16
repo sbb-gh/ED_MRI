@@ -92,6 +92,8 @@ def return_argparser():
 
 
 def run(args, pass_data=None):
+    if isinstance(args,dict):
+        args = argparse.Namespace(**args)
 
     assert (
         args.epochs_fix_sigma + args.epochs_decay_sigma + args.epochs_decay

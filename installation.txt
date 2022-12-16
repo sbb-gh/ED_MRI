@@ -3,6 +3,7 @@ Helper file to install required packages.
 Running JOFSTO requires:
     - pytorch
     - numpy
+    - pyyaml
 
 The code can run on GPU, or on the CPU only (much slower).
 Please see [link](https://pytorch.org/) for PyTorch installation details.
