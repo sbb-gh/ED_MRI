@@ -177,7 +177,7 @@ def save_results_dir(
     results,
     run_name,
 ):
-    if out_base_dir is not [None,""]:
+    if not out_base_dir in [None,""]:
         results_dir = os.path.join(out_base_dir, "results")
         os.makedirs(results_dir, exist_ok=True)
         all_results_fil = os.path.join(results_dir, run_name + "_all.npy")

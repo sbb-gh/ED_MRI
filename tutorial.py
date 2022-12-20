@@ -103,7 +103,7 @@ data_fil = ""  # Add path to saved file
 np.save(data_fil, data)
 print("Saving data as", data_fil)
 pass_data = None
-jofsto_args.extend(["--data_fil", data_fil])
+jofsto_args["data_fil"] = data_fil
 '''
 
 
