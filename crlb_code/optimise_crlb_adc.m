@@ -20,6 +20,7 @@ end
 
 %save the optimised b-values
 writematrix(b_opt(:),"crlb_adc_optimised_protocol.txt")
+save("crlb_adc_optimised_protocol.mat","b_opt")
 
 
 
