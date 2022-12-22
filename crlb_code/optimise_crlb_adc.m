@@ -19,7 +19,7 @@ end
 %legend(arrayfun(@(x) ['ADC = ' num2str(x) ' μm^2/ms'],adcs,'UniformOutput',false))
 
 %save the optimised b-values
-save("crlb_adc_optimised_protocol.mat","b_opt")
+writematrix(b_opt(:),"crlb_adc_optimised_protocol.txt")
 
 
 
