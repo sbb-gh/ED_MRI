@@ -1,15 +1,18 @@
 """
-(c) Stefano B. Blumberg, do not redistribute or modify
-
 Python-based tutorial for <Add paper link>
+
+We encourage users to explore different data generation, preprocessing and JOFSTO hyperparameters.
+
+TODO Code runs on gpu automatically, detection torch.cuda_is_available
 
 Overview for cells:
     - Choose data size splits 2
     - Generate data examples 3-A/B/C
     - Data format for JOFSTO 4
     - Option to pass data directly, or save to disk and load 5-A/B
-    - JOFSTO hyperparameters 6,7,8
-    - Data normalization 9
+    - Option to save output 6
+    - JOFSTO hyperparameters 7,8,9 in order of importance.
+    - Data normalization 10
 """
 
 
@@ -17,6 +20,7 @@ Overview for cells:
 # Import modules, see requirements.txt for jofsto requirements, set global seed
 
 import numpy as np
+import os, yaml
 from jofsto_code.jofsto_main import return_argparser, run
 
 np.random.seed(0)  # Random seed for entire script
@@ -87,10 +91,11 @@ data = dict(
     test_tar=test_tar,  # Shape n_test x M
 )
 
-jofsto_args = []
-parser = return_argparser()  # JOFSTO hyperparameters here
+# Load base JOFSTO hyperparameters
+with open(os.path.dirname(__file__) + "/base.yaml", "r") as f:
+    jofsto_args =  yaml.safe_load(f)
 
-
+'''
 ########## (5-A)
 # Option to save data to disk, and JOFSTO load
 
@@ -98,7 +103,8 @@ data_fil = ""  # Add path to saved file
 np.save(data_fil, data)
 print("Saving data as", data_fil)
 pass_data = None
-jofsto_args.extend(["--data_fil", data_fil])
+jofsto_args["data_fil"] = data_fil
+'''
 
 
 ########## (5-B)
@@ -108,68 +114,65 @@ pass_data = data
 
 
 ########## (6)
+# Option to save the output
+'''
+# Output saved as dict in save_fil=<out_base>/<proj_name>/results/<run_name>_all.npy
+# Load with np.load(str(save_fil),allow_pickle=True).item()
+jofsto_args["out_base"] = <ADD>
+jofsto_args["proj_name"] = <ADD>
+jofsto_args["run_name"] = <ADD>
+'''
+
+########## (7)
 # Simplest version of JOFSTO, modifying the most important hyperparameters
 
 
 # Decreasing feature subsets sizes for JOFSTO to consider
-C_i_values = [C_bar, C_bar // 2, C_bar // 4, C_bar // 8, C_bar // 16]
-jofsto_args.extend(["--C_i_values"] + [str(val) for val in C_i_values])
+jofsto_args["C_i_values"] = [C_bar, C_bar // 2, C_bar // 4, C_bar // 8, C_bar // 16]
 
 # Feature subset sizess for JOFSTO evaluated on test data
-C_i_eval = [C_bar // 2, C_bar // 4, C_bar // 8, C_bar // 16]
-jofsto_args.extend(["--C_i_eval"] + [str(val) for val in C_i_eval])
+jofsto_args["C_i_eval"] = [C_bar // 2, C_bar // 4, C_bar // 8, C_bar // 16]
 
 # Scoring net C_bar -> num_units_score[0] -> num_units_score[1] ... -> C_bar units
-num_units_score = [1000, 1000]
-jofsto_args.extend(["--num_units_score"] + [str(val) for val in num_units_score])
+jofsto_args["num_units_score"] = [1000, 1000]
 
 # Task net C_bar -> num_units_task[0] -> num_units_task[1] ... -> M units
-num_units_task = [1000, 1000]
-jofsto_args.extend(["--num_units_task"] + [str(val) for val in num_units_task])
+jofsto_args["num_units_task"] = [1000, 1000]
 
-args = parser.parse_args(jofsto_args)
-run(args=args, pass_data=pass_data)
-
-
-########## (7)
-# Modify more JOFSTO hyperparameters, less important, may change results
-
-# Fix score after epoch, E_1 in paper
-epochs_fix_sigma = 25
-jofsto_args.extend(["--epochs_fix_sigma", str(epochs_fix_sigma)])
-
-# Progressively set score to be sample independent across no. epochs, E_2 - E_1 in paper
-epochs_decay_sigma = 10
-jofsto_args.extend(["--epochs_decay_sigma", str(epochs_decay_sigma)])
-
-# Progressively modify mask across number epochs, E_3 - E_2 in paper
-epochs_decay = 10
-jofsto_args.extend(["--epochs_decay", str(epochs_decay)])
-
-args = parser.parse_args(jofsto_args)
-run(args=args, pass_data=pass_data)
+run(args=jofsto_args, pass_data=pass_data)
 
 
 ########## (8)
-# Deep learning training hyperparameters for inner loop
+# Modify more JOFSTO hyperparameters, less important, may change results
 
-# Training epochs per step, set large to trigger early stopping
-total_epochs = 10000
-jofsto_args.extend(["--total_epochs", str(total_epochs)])
+# Fix score after epoch, E_1 in paper
+jofsto_args["epochs_fix_sigma"] = 25
 
-# Training learning rate
-learning_rate = 0.0001
-jofsto_args.extend(["--learning_rate", str(learning_rate)])
+# Progressively set score to be sample independent across no. epochs, E_2 - E_1 in paper
+jofsto_args["epochs_decay_sigma"] = 10
 
-# Training batch size
-batch_size = 1500
-jofsto_args.extend(["--batch_size", str(batch_size)])
+# Progressively modify mask across number epochs, E_3 - E_2 in paper
+jofsto_args["epochs_decay"] = 10
 
-args = parser.parse_args(jofsto_args)
-run(args=args, pass_data=pass_data)
+run(args=jofsto_args, pass_data=pass_data)
 
 
 ########## (9)
+# Deep learning training hyperparameters for inner loop
+
+# Training epochs per step, set large to trigger early stopping
+jofsto_args["total_epochs"] = 10000
+
+# Training learning rate
+jofsto_args["learning_rate"] = 0.0001
+
+# Training batch size
+jofsto_args["batch_size"] = 1500
+
+run(args=jofsto_args, pass_data=pass_data)
+
+
+########## (10)
 # TODO data normalization
 #   (i) pre-processing all data
 #   (ii) ./utils/calc_affine_norm

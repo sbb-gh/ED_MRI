@@ -2,13 +2,17 @@ Stefano
 - Overview for text files -> Also do in MATLAB
 - High-level example of data format, in tutorial and readme, maybe better to have examples ??
 - Cleanup JOFSTO, remove unncecessary fluff, add accessability to sections
-- Last cell in tutorial, normalization
-[- TODO code automated cleanup (black, PEP8)]
+- Option in-training noramlizations, currently only affine.  Descripti/tutorial on of normalization?
+- Explain data normalization concisely, normalization in MRI implies different channels have different statistics.
+- Signature for ./utils/calc_affine_norm
+- Option to save network, instructions on how to load and use
+- Cleanup config file
+[-Code automated cleanup (black, PEP8)]
 
 Paddy
 - Add comments to utils/simulations.py -- maybe split the file into two?
 - Consider matlab example where you save the data output and load JOFSTO
-- Speak to Lizzie
+- Give advice on what
 
 Both
 - Discuss how to integrate MATLAB into library

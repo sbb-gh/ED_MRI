@@ -158,7 +158,10 @@ class Trainer:
         return float(loss), pred_all.numpy()
 
     def train(self, train_x, train_y, val_x, val_y, test_x, test_y, **kwargs):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if self.options["no_gpu"]:
+            self.device = "cpu"
+        else:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Run training on:", self.device, flush=True)
         self.create_model()
         self.create_optimizer()
@@ -188,6 +191,8 @@ class Trainer:
                     measurements=measurements,
                     sigma_bar=sigma_bar,
                 )
+                if self.options["save_output"]:
+                    results[C_i]["test_output"] = test_pred
 
                 if self.options["hcp_fit_parameters"]:
                     from parameter_fit import hcp_fit_parameters

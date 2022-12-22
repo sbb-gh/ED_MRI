@@ -1,0 +1,31 @@
+# TODO clean up, put some structure, restrictions/datatypes for options
+
+data_fil: None # Path to data dictionary
+data_train_subjs:
+  - train
+data_val_subjs:
+  - val
+data_test_subjs:
+  - test
+data_normalization: original-measurement
+epochs_fix_sigma: 25 # Fix score after epoch, E_1 in paper
+epochs_decay_sigma: 10 # Progressively set score to be sample independent across number epochs, E_2 - E_1 in paper
+epochs_decay: 10 # Progressively modify mask across number epochs, E_3 - E_2 in paper
+total_epochs: 10000 # E in paper
+learning_rate: 0.0001
+batch_size: 1500
+random_seed_value: 0
+workers: 0 # Dataloader number of workers
+proj_name: tst # Output proj_name/run_name
+run_name: def # Output proj_name/run_name
+C_i_values: None # List, values of C_1, C_2,..."
+C_i_eval: None # List evaluate at this C"
+num_units_score: # Intermediate units in Score Network S, [-1] to switch off
+num_units_task: # Intermediate units in Task Network T, set to [-1] to switch off
+  - 1000
+hcp_fit_parameters: False # Fit the model parameters on HCP data
+score_activation: doublesigmoid # Activation function for score \sigma in paper
+no_gpu: False # Turn off GPU and run on CPU
+
+out_base: "" # Outputs saved directory, set to "" to not save results file
+save_output: False # Saves prediction on test data - may fill up disk space

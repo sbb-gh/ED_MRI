@@ -88,10 +88,24 @@ def return_argparser():
         help="Activation function for score \sigma in paper",
     )
 
+    paradd(
+        "--no_gpu",
+        type="store_true",
+        help="Do not use gpu, run on cpu",
+    )
+
+    paradd(
+        "--save_output",
+        type="store_true",
+        help="Saves output/prediction on test data",
+    )
+
     return parser
 
 
 def run(args, pass_data=None):
+    if isinstance(args,dict):
+        args = argparse.Namespace(**args)
 
     assert (
         args.epochs_fix_sigma + args.epochs_decay_sigma + args.epochs_decay
@@ -111,6 +125,8 @@ def run(args, pass_data=None):
         proj_name=args.proj_name,
         run_name=args.run_name,
         hcp_fit_parameters=args.hcp_fit_parameters,
+        no_gpu=args.no_gpu,
+        save_output=args.save_output,
     )
 
     ## NAS hyperparameters
