@@ -187,6 +187,20 @@ def save_results_dir(
     else:
         print("Do not save final results")
 
+def load_results(
+    full_path=None,
+    out_base_dir=None,
+    run_name=None,
+):
+    """Load results file from JOFSTO save.
+        Option (i) Pass full path link
+        Option (ii) Pass out_base_dir and run_name
+    """
+    # TODO cleanup
+    load_path = full_path if full_path is not None else os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")    
+    results_load = np.load(load_path,allow_pickle=True).item()
+    
+    return results_load
 
 def set_random_seed_tf(seed):
     """Set random seed for tensorflow, seed is int"""
