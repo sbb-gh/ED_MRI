@@ -181,7 +181,7 @@ def run(args, pass_data=None):
     results["C_i_eval"] = args.C_i_eval
     save_results_dir(out_base_dir=out_base_dir, results=results, run_name=args.run_name)
 
-    print("EOF", __file__)
+    return results
 
 
 if __name__ == "__main__":
