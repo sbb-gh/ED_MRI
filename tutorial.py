@@ -1,5 +1,5 @@
 """
-Python-based tutorial for <Add paper link>
+Python-based tutorial for https://arxiv.org/pdf/2210.06891.pdf
 
 We encourage users to explore different data generation, preprocessing and JOFSTO hyperparameters.
 
@@ -21,7 +21,7 @@ Overview for cells:
 
 import numpy as np
 import os, yaml
-from jofsto_code.jofsto_main import return_argparser, run
+from jofsto_code.jofsto_main import run
 
 np.random.seed(0)  # Random seed for entire script
 

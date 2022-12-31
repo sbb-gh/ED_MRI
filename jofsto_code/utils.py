@@ -133,6 +133,8 @@ def create_data_norm(
         pass_data=pass_data,
     )
 
+    # Other preprocessing here
+
     data = dict(
         train_x=datatrain[0],
         train_y=datatrain[1],
@@ -197,9 +199,9 @@ def load_results(
         Option (ii) Pass out_base_dir and run_name
     """
     # TODO cleanup
-    load_path = full_path if full_path is not None else os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")    
+    load_path = full_path if full_path is not None else os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")
     results_load = np.load(load_path,allow_pickle=True).item()
-    
+
     return results_load
 
 def set_random_seed_tf(seed):
