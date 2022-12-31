@@ -15,107 +15,106 @@ from .utils import (
 def return_argparser():
     parser = argparse.ArgumentParser(description="JOFSTO")
     paradd = parser.add_argument
-    paradd("--data_fil", type=str, default="", help="Path to data dictionary")
-    paradd("--out_base", type=str, default="", help="Outputs saved directory")
 
+    # Load data, processing and normalization
+    paradd("--data_fil", type=str, default="", help="Path to data dictionary")
     paradd("--data_train_subjs", type=str, nargs="*", default=["train"])
     paradd("--data_val_subjs", type=str, nargs="*", default=["val"])
     paradd("--data_test_subjs", type=str, nargs="*", default=["test"])
     paradd("--data_normalization", type=str, default="original-measurement")
+
+    # Output
+    paradd("--out_base", type=str, default="",
+        help="Outputs saved directory, set to "" to not save results file")
+    paradd("--proj_name", type=str, default="tst", help="Output proj_name/run_name")
+    paradd("--run_name", type=str, default="def", help="Output proj_name/run_name")
+    paradd(
+        "--save_output",
+        type="store_true",
+        help="Saves output/prediction on test data"
+    )
+    paradd(
+        "--hcp_fit_parameters",
+        action="store_true",
+        help="Fit the model parameters on HCP data"
+    )
+
+    # Feature sizes
+    paradd(
+        "--C_i_values",
+        nargs="*",
+        type=int,
+        help="Values of C_1, C_2,..."
+    )
+    paradd(
+        "--C_i_eval",
+        nargs="*",
+        type=int,
+        help="Evaluate at this C"
+    )
+
+    # JOFSTO network structure
+    paradd(
+        "--num_units_score",
+        type=int,
+        nargs="*",
+        default=[],
+        help="Intermediate units in Score Network S, [-1] to switch off"
+    )
+    paradd(
+        "--num_units_task",
+        type=int,
+        nargs="*",
+        default=[],
+        help="Intermediate units in Task Network T, set to [-1] to switch off"
+    )
+    paradd(
+        "--score_activation",
+        type=str,
+        default="doublesigmoid",
+        help="Activation function for score \sigma in paper"
+    )
+
+    # Basic training
+    paradd("--total_epochs", type=int, default=10000, help="E in paper")
+    paradd("--learning_rate", type=float, default=0.0001)
+    paradd("--batch_size", type=int, default=1500)
+    paradd("--random_seed_value", type=int, default=0, help="Random seed value")
+    paradd("--workers", type=int, default=0, help="Dataloader number of workers")
+    paradd("--no_gpu",type="store_true",help="Do not use gpu, run on cpu")
+
+    # JOFSTO additional training hyperparameters
     paradd(
         "--epochs_fix_sigma",
         type=int,
         default=25,
-        help="Fix score after epoch, E_1 in paper",
+        help="Fix score after epoch, E_1 in paper"
     )
     paradd(
         "--epochs_decay_sigma",
         type=int,
         default=10,
-        help="Progressively set score to be sample independent across number epochs, E_2 - E_1 in paper",
+        help="Progressively set score sample independence across epochs, E_2 - E_1 in paper"
     )
     paradd(
         "--epochs_decay",
         "-e_d",
         type=int,
         default=10,
-        help="Progressively modify mask across number epochs, E_3 - E_2 in paper",
-    )
-    paradd("--total_epochs", type=int, default=10000, help="E in paper")
-    paradd("--learning_rate", type=float, default=0.0001)
-    paradd("--batch_size", type=int, default=1500)
-    paradd("--random_seed_value", type=int, default=0, help="Random seed value")
-    paradd("--workers", type=int, default=0, help="Dataloader number of workers")
-    paradd("--proj_name", type=str, default="tst", help="Output proj_name/run_name")
-    paradd("--run_name", type=str, default="def", help="Output proj_name/run_name")
-    paradd(
-        "--C_i_values",
-        nargs="*",
-        type=int,
-        help="Values of C_1, C_2,...",
-    )
-    paradd(
-        "--C_i_eval",
-        nargs="*",
-        type=int,
-        help="Evaluate at this C",
-    )
-    paradd(
-        "--num_units_score",
-        type=int,
-        nargs="*",
-        default=[1000],
-        help="Intermediate units in Score Network S, [-1] to switch off",
-    )
-    paradd(
-        "--num_units_task",
-        type=int,
-        nargs="*",
-        default=[1000],
-        help="Intermediate units in Task Network T, set to [-1] to switch off",
-    )
-
-    paradd(
-        "--hcp_fit_parameters",
-        action="store_true",
-        help="Fit the model parameters on HCP data",
-    )
-
-    paradd(
-        "--score_activation",
-        type=str,
-        default="doublesigmoid",
-        help="Activation function for score \sigma in paper",
-    )
-
-    paradd(
-        "--no_gpu",
-        type="store_true",
-        help="Do not use gpu, run on cpu",
-    )
-
-    paradd(
-        "--save_output",
-        type="store_true",
-        help="Saves output/prediction on test data",
+        help="Progressively modify mask across number epochs, E_3 - E_2 in paper"
     )
 
     return parser
 
 
 def run(args, pass_data=None):
-    if isinstance(args,dict):
+    if isinstance(args, dict):
         args = argparse.Namespace(**args)
 
-    assert (
-        args.epochs_fix_sigma + args.epochs_decay_sigma + args.epochs_decay
-        < args.total_epochs
-    )
+    assert args.epochs_fix_sigma + args.epochs_decay_sigma + args.epochs_decay < args.total_epochs
 
     data = create_data_norm(**args.__dict__, pass_data=pass_data)
-    out_base_dir, save_model_path = create_out_dirs(
-        args.out_base, args.proj_name, args.run_name
-    )
+    out_base_dir, save_model_path = create_out_dirs(args.out_base, args.proj_name, args.run_name)
     print_dict(args)
     set_random_seed(seed=args.random_seed_value, framework="pt")
 

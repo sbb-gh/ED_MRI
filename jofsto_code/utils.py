@@ -18,9 +18,7 @@ def data_dict_to_array(data_dict, names, data_voxels=None, concat=True):
     data_out_inp = tuple([data_dict[name] for name in names_inp])
     data_out_inp = np.concatenate(data_out_inp, axis=0)
     data_out_inp = data_out_inp.astype(np.float32)
-    print(
-        "concatenated", names_inp, "for voxels", data_voxels, "on voxel dim", flush=True
-    )
+    print("concatenated", names_inp, "for voxels", data_voxels, "on voxel dim", flush=True)
 
     names_tar = [name + "_tar" for name in names]
     try:
@@ -104,9 +102,7 @@ def calc_affine_norm(
     else:
         assert False
 
-    assert (
-        smallsig == 0
-    ), "Rewrite for smallsig > 0 datatrain[datatrain<smallsig] = smallsig"
+    assert smallsig == 0, "Rewrite for smallsig > 0 datatrain[datatrain<smallsig] = smallsig"
     min_val = smallsig
     loss_affine = (max_val - min_val, min_val)
 
@@ -148,12 +144,8 @@ def create_data_norm(
     data["n_features"] = datatrain[0].shape[1]
     data["out_units"] = datatrain[1].shape[1]
 
-    loss_affine_x = calc_affine_norm(
-        datatrain[0], data_normalization, prctsig, smallsig
-    )
-    loss_affine_y = calc_affine_norm(
-        datatrain[1], data_normalization, prctsig, smallsig
-    )
+    loss_affine_x = calc_affine_norm(datatrain[0], data_normalization, prctsig, smallsig)
+    loss_affine_y = calc_affine_norm(datatrain[1], data_normalization, prctsig, smallsig)
 
     assert loss_affine_y[1] in (0, None)
 
@@ -179,7 +171,7 @@ def save_results_dir(
     results,
     run_name,
 ):
-    if not out_base_dir in [None,""]:
+    if not out_base_dir in [None, ""]:
         results_dir = os.path.join(out_base_dir, "results")
         os.makedirs(results_dir, exist_ok=True)
         all_results_fil = os.path.join(results_dir, run_name + "_all.npy")
@@ -189,20 +181,26 @@ def save_results_dir(
     else:
         print("Do not save final results")
 
+
 def load_results(
     full_path=None,
     out_base_dir=None,
     run_name=None,
 ):
     """Load results file from JOFSTO save.
-        Option (i) Pass full path link
-        Option (ii) Pass out_base_dir and run_name
+    Option (i) Pass full path link
+    Option (ii) Pass out_base_dir and run_name
     """
     # TODO cleanup
-    load_path = full_path if full_path is not None else os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")
-    results_load = np.load(load_path,allow_pickle=True).item()
+    load_path = (
+        full_path
+        if full_path is not None
+        else os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")
+    )
+    results_load = np.load(load_path, allow_pickle=True).item()
 
     return results_load
+
 
 def set_random_seed_tf(seed):
     """Set random seed for tensorflow, seed is int"""

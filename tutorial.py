@@ -1,7 +1,8 @@
 """
 Python-based tutorial for https://arxiv.org/pdf/2210.06891.pdf
 
-We encourage users to explore different data generation, preprocessing and JOFSTO hyperparameters.
+We encourage users to explore different options for
+data generation, preprocessing and JOFSTO hyperparameters.
 
 TODO Code runs on gpu automatically, detection torch.cuda_is_available
 
@@ -20,7 +21,7 @@ Overview for cells:
 # Import modules, see requirements.txt for jofsto requirements, set global seed
 
 import numpy as np
-import os, yaml
+from utils import helper_functions
 from jofsto_code.jofsto_main import run
 
 np.random.seed(0)  # Random seed for entire script
@@ -92,10 +93,9 @@ data = dict(
 )
 
 # Load base JOFSTO hyperparameters
-with open(os.path.dirname(__file__) + "/base.yaml", "r") as f:
-    jofsto_args =  yaml.safe_load(f)
+jofsto_args = helper_functions.load_yaml("./base.yaml")
 
-'''
+"""
 ########## (5-A)
 # Option to save data to disk, and JOFSTO load
 
@@ -104,7 +104,7 @@ np.save(data_fil, data)
 print("Saving data as", data_fil)
 pass_data = None
 jofsto_args["data_fil"] = data_fil
-'''
+"""
 
 
 ########## (5-B)
@@ -115,13 +115,13 @@ pass_data = data
 
 ########## (6)
 # Option to save the output
-'''
+"""
 # Output saved as dict in save_fil=<out_base>/<proj_name>/results/<run_name>_all.npy
 # Load with np.load(str(save_fil),allow_pickle=True).item()
 jofsto_args["out_base"] = <ADD>
 jofsto_args["proj_name"] = <ADD>
 jofsto_args["run_name"] = <ADD>
-'''
+"""
 
 ########## (7)
 # Simplest version of JOFSTO, modifying the most important hyperparameters

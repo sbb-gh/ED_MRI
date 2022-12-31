@@ -197,14 +197,10 @@ class Trainer:
                 if self.options["hcp_fit_parameters"]:
                     from parameter_fit import hcp_fit_parameters
 
-                    results_param_fit = hcp_fit_parameters(
-                        data_pred=test_pred, data_tar=test_y
-                    )
+                    results_param_fit = hcp_fit_parameters(data_pred=test_pred, data_tar=test_y)
                     results_param_fit_new = dict()
                     for key in results_param_fit.keys():
-                        results_param_fit_new["test_joint_" + key] = results_param_fit[
-                            key
-                        ]
+                        results_param_fit_new["test_joint_" + key] = results_param_fit[key]
                     results[C_i].update(results_param_fit_new)
 
         print("End of Training")

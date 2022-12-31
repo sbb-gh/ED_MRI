@@ -6,7 +6,6 @@ Stefano
 - Explain data normalization concisely, normalization in MRI implies different channels have different statistics.
 - Signature for ./utils/calc_affine_norm
 - Option to save network, instructions on how to load and use
-- Cleanup config file
 [-Code automated cleanup (black, PEP8)]
 
 Paddy

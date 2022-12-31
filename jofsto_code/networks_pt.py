@@ -83,13 +83,8 @@ class jofsto(torch.nn.Module):
                 print("Decay sigma_mult", float(sigma_mult))
                 self.assign(sigma_mult=sigma_mult)
 
-        if (
-            self.epoch >= self.epochs_fix_sigma + self.epochs_decay_sigma
-        ) and self.t > 1:
-            if (
-                torch.sum(self.m_decay > 0)
-                and torch.max(m[torch.where(self.m_decay == 1)]) > 0
-            ):
+        if (self.epoch >= self.epochs_fix_sigma + self.epochs_decay_sigma) and self.t > 1:
+            if torch.sum(self.m_decay > 0) and torch.max(m[torch.where(self.m_decay == 1)]) > 0:
                 print("Decay measurements")
                 m = m - self.alpha_m * self.m_decay
                 m = torch.max(m, torch.tensor(0).type_as(m))
