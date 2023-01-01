@@ -16,6 +16,8 @@ def return_argparser():
     parser = argparse.ArgumentParser(description="JOFSTO")
     paradd = parser.add_argument
 
+    paradd("--cfg_fil", type=str, default="", help="Path to config file")
+
     # Load data, processing and normalization
     paradd("--data_fil", type=str, default="", help="Path to data dictionary")
     paradd("--data_train_subjs", type=str, nargs="*", default=["train"])
@@ -32,11 +34,6 @@ def return_argparser():
         "--save_output",
         type="store_true",
         help="Saves output/prediction on test data"
-    )
-    paradd(
-        "--hcp_fit_parameters",
-        action="store_true",
-        help="Fit the model parameters on HCP data"
     )
 
     # Feature sizes
@@ -123,7 +120,6 @@ def run(args, pass_data=None):
         out_base=args.out_base,
         proj_name=args.proj_name,
         run_name=args.run_name,
-        hcp_fit_parameters=args.hcp_fit_parameters,
         no_gpu=args.no_gpu,
         save_output=args.save_output,
     )
@@ -133,23 +129,23 @@ def run(args, pass_data=None):
         num_units_score=args.num_units_score,
         num_units_task=args.num_units_task,
         seed=args.random_seed_value,
+        score_activation=args.score_activation,
         n_features=data["n_features"],
         out_units=data["out_units"],
         loss_affine_x=data["loss_affine_x"],
         loss_affine_y=data["loss_affine_y"],
-        score_activation=args.score_activation,
         train_x_median=data["train_x_median"],
     )
 
     update_params = dict(
         epochs=args.total_epochs,
         epochs_decay=args.epochs_decay,
-        n_features=data["n_features"],
         C_i_values=args.C_i_values,
         save_model_path=save_model_path,
         epochs_fix_sigma=args.epochs_fix_sigma,
         epochs_decay_sigma=args.epochs_decay_sigma,
         C_i_eval=args.C_i_eval,
+        n_features=data["n_features"],
     )
 
     optimizer_params = dict(lr=args.learning_rate)

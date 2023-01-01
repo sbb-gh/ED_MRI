@@ -12,7 +12,6 @@ out_base: "" # str Outputs saved directory, set to "" to not save results file
 proj_name: tst # str Output proj_name/run_name
 run_name: def # str Output proj_name/run_name
 save_output: False # bool Saves prediction on test data - may fill up disk space
-hcp_fit_parameters: False # bool Fit the model parameters on HCP data
 
 # Feature sizes
 C_i_values: [] # List[int] Values of C_1, C_2,...

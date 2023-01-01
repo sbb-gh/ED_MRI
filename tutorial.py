@@ -21,8 +21,7 @@ Overview for cells:
 # Import modules, see requirements.txt for jofsto requirements, set global seed
 
 import numpy as np
-from utils import helper_functions
-from jofsto_code.jofsto_main import run
+from jofsto_code import jofsto_main, utils
 
 np.random.seed(0)  # Random seed for entire script
 
@@ -50,7 +49,7 @@ test_inp, test_tar = rand(size=(n_test, C_bar)), rand(size=(n_test, M))
 # Generate data using VERDICT model and scheme [link](https://pubmed.ncbi.nlm.nih.gov/25426656/)
 # Requires python package dmipy [link](https://github.com/AthenaEPI/dmipy) tested on v1.0.5
 
-from utils import simulations
+import simulations
 from dmipy.data.saved_acquisition_schemes import panagiotaki_verdict_acquisition_scheme
 
 # Create train, val, test sets for our example from a scheme
@@ -67,7 +66,7 @@ M = train_tar.shape[1]  # C_bar,M same for val, test data
 # Uses acquisition scheme [link](https://pubmed.ncbi.nlm.nih.gov/28643354/)
 # Requires python package dmipy [link](https://github.com/AthenaEPI/dmipy) tested on v1.0.5
 
-from utils import simulations
+import simulations
 from dmipy.data.saved_acquisition_schemes import isbi2015_white_matter_challenge_scheme
 
 # Create train, val, test sets for our example from a scheme
@@ -93,7 +92,7 @@ data = dict(
 )
 
 # Load base JOFSTO hyperparameters
-jofsto_args = helper_functions.load_yaml("./base.yaml")
+jofsto_args = utils.load_yaml("./base.yaml")
 
 """
 ########## (5-A)
@@ -139,7 +138,7 @@ jofsto_args["num_units_score"] = [1000, 1000]
 # Task net C_bar -> num_units_task[0] -> num_units_task[1] ... -> M units
 jofsto_args["num_units_task"] = [1000, 1000]
 
-run(args=jofsto_args, pass_data=pass_data)
+jofsto_main.run(args=jofsto_args, pass_data=pass_data)
 
 
 ########## (8)
@@ -154,7 +153,7 @@ jofsto_args["epochs_decay_sigma"] = 10
 # Progressively modify mask across number epochs, E_3 - E_2 in paper
 jofsto_args["epochs_decay"] = 10
 
-run(args=jofsto_args, pass_data=pass_data)
+jofsto_main.run(args=jofsto_args, pass_data=pass_data)
 
 
 ########## (9)
@@ -169,7 +168,7 @@ jofsto_args["learning_rate"] = 0.0001
 # Training batch size
 jofsto_args["batch_size"] = 1500
 
-run(args=jofsto_args, pass_data=pass_data)
+jofsto_main.run(args=jofsto_args, pass_data=pass_data)
 
 
 ########## (10)

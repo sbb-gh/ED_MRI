@@ -2,8 +2,7 @@
 
 
 import numpy as np
-import random, pickle
-import os
+import os, pickle, random, yaml
 
 
 def data_dict_to_array(data_dict, names, data_voxels=None, concat=True):
@@ -33,17 +32,6 @@ def data_dict_to_array(data_dict, names, data_voxels=None, concat=True):
     return data_out_inp, data_out_tar
 
 
-def load_data(data_fil):
-    if data_fil.split(".")[-1] == "pkl":
-        with open(data_fil, "rb") as f:
-            data_dict = pickle.load(f)
-    elif data_fil.split(".")[-1] == "npy":
-        data_dict = np.load(data_fil, allow_pickle=True).item()
-    else:
-        assert False, "Data file either .pkl or .npy"
-    return data_dict
-
-
 def create_out_dirs(
     out_base,
     proj_base_name,
@@ -68,6 +56,17 @@ def create_out_dirs(
         save_model_path = None
 
     return out_base_dir, save_model_path
+
+
+def load_data(data_fil):
+    if data_fil.split(".")[-1] == "pkl":
+        with open(data_fil, "rb") as f:
+            data_dict = pickle.load(f)
+    elif data_fil.split(".")[-1] == "npy":
+        data_dict = np.load(data_fil, allow_pickle=True).item()
+    else:
+        assert False, "Data file either .pkl or .npy"
+    return data_dict
 
 
 def create_train_val_test(
@@ -157,6 +156,33 @@ def create_data_norm(
     return data
 
 
+def load_yaml(file_path):
+    with open(file_path, "r") as f:
+        loaded_yaml = yaml.safe_load(f)
+    return loaded_yaml
+
+
+
+def load_results(
+    full_path=None,
+    out_base_dir=None,
+    run_name=None,
+):
+    """Load results file from JOFSTO save.
+    Option (i) Pass full path link
+    Option (ii) Pass out_base_dir and run_name
+    """
+    # TODO cleanup
+    load_path = (
+        full_path
+        if full_path is not None
+        else os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")
+    )
+    results_load = np.load(load_path, allow_pickle=True).item()
+
+    return results_load
+
+
 def print_dict(dictionary):
     try:
         for key, val in dictionary.items():
@@ -181,25 +207,6 @@ def save_results_dir(
     else:
         print("Do not save final results")
 
-
-def load_results(
-    full_path=None,
-    out_base_dir=None,
-    run_name=None,
-):
-    """Load results file from JOFSTO save.
-    Option (i) Pass full path link
-    Option (ii) Pass out_base_dir and run_name
-    """
-    # TODO cleanup
-    load_path = (
-        full_path
-        if full_path is not None
-        else os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")
-    )
-    results_load = np.load(load_path, allow_pickle=True).item()
-
-    return results_load
 
 
 def set_random_seed_tf(seed):
@@ -239,4 +246,25 @@ def set_random_seed(
         set_random_seed_tf(seed)
     elif framework == "pt":
         set_random_seed_pt(seed)
+
     print("Random seed is", seed)
+
+
+def set_numpy_seed(seed):
+    np.random.seed(seed)
+
+
+def jofsto_data_format(train, val, test):
+    data_inp = dict(train=train, val=val, test=test)
+    data = dict()
+    for split in ("train", "val", "test"):
+        data_split = data_inp[split]
+        if isinstance(data_split, tuple) and len(data_split) == 2:
+            data[split] = data_split[0]
+            data[split + "_tar"] = data_split[1]
+        else:
+            data[split] = data_split
+
+    for key, val in data.items():
+        assert isinstance(val, np.ndarray)
+    return data

@@ -46,20 +46,20 @@ Duplicating the results for VERDICT and NODDI in table 2 in our [paper](https://
 ### VERDICT Results
 
 ```python
-from utils import simulations, helper_functions
-from jofsto_code.jofsto_main import run
+import simulations
+from jofsto_code import jofsto_main, utils
 from dmipy.data import saved_acquisition_schemes
 
 scheme = saved_acquisition_schemes.panagiotaki_verdict_acquisition_scheme()
 nsamples_train, nsamples_val, nsamples_test  = 10**6, 10**5, 10**5
 
-helper_functions.set_simulations_seed(0)
+utils.set_numpy_seed(0)
 train_sims = simulations.verdict(nsamples_train, scheme)
 val_sims = simulations.verdict(nsamples_val, scheme)
 test_sims = simulations.verdict(nsamples_test, scheme)
 
-data = helper_functions.jofsto_data_format(train_sims,val_sims,test_sims)
-jofsto_args = helper_functions.load_yaml("./base.yaml")
+data = utils.jofsto_data_format(train_sims,val_sims,test_sims)
+jofsto_args = utils.load_yaml("./base.yaml")
 
 jofsto_args["C_i_values"] = [220, 110, 55, 28, 14]
 jofsto_args["C_i_eval"] = [110, 55, 28, 14]
@@ -68,26 +68,26 @@ jofsto_args["C_i_eval"] = [110, 55, 28, 14]
 jofsto_args["num_units_score"] = [] # CHANGE e.g. [1000, 1000]
 jofsto_args["num_units_task"] = [] # CHANGE e.g. [1000, 1000]
 
-run(jofsto_args, data)
+jofsto_main.run(jofsto_args, data)
 ```
 
 ### NODDI Results
 
 ```python
-from utils import simulations, helper_functions
-from jofsto_code.jofsto_main import run
+import simulations
+from jofsto_code import jofsto_main, utils
 from dmipy.data import saved_acquisition_schemes
 
 scheme = saved_acquisition_schemes.isbi2015_white_matter_challenge_scheme()
 nsamples_train, nsamples_val, nsamples_test  = 10**5, 10**4, 10**4
 
-helper_functions.set_simulations_seed(0)
+utils.set_numpy_seed(0)
 train_sims = simulations.noddi(nsamples_train, scheme)
 val_sims = simulations.noddi(nsamples_val, scheme)
 test_sims = simulations.noddi(nsamples_test, scheme)
 
-data = helper_functions.jofsto_data_format(train_sims,val_sims,test_sims)
-jofsto_args = helper_functions.load_yaml("./base.yaml")
+data = utils.jofsto_data_format(train_sims,val_sims,test_sims)
+jofsto_args = utils.load_yaml("./base.yaml")
 
 jofsto_args["C_i_values"] = [3612, 1806, 903, 452, 226]
 jofsto_args["C_i_eval"] = [1806, 903, 452, 226]
@@ -96,6 +96,5 @@ jofsto_args["C_i_eval"] = [1806, 903, 452, 226]
 jofsto_args["num_units_score"] = [] # CHANGE e.g. [1000, 1000]
 jofsto_args["num_units_task"] = [] # CHANGE e.g. [1000, 1000]
 
-run(jofsto_args, data)
+jofsto_main.run(jofsto_args, data)
 ```
-
