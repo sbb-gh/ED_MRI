@@ -25,15 +25,23 @@ $ conda install notebook; pip install dmipy==1.0.5 # Optional modules
 
 ### Example Installation using Pyenv
 
-Pyenv documentation is [link](https://github.com/pyenv).
+Pyenv documentation is [link](https://github.com/pyenv), where <INSTALL_DIR> is the directory the virtual environment is installed in.
 
 ```bash
-# Replace <Install_dir> with the directory to install virtual environment in
-$ python -m venv <Install_dir>/ED_MRI_env # Assume using compatible Python version e.g. 3.6.13
-$ . <Install_dir>/ED_MRI_env/bin/activate
+$ python -m venv <INSTALL_DIR>/ED_MRI_env # Assume using compatible Python version e.g. 3.6.13
+$ . <INSTALL_DIR>/ED_MRI_env/bin/activate
 $ pip install torch==1.7.1+cu92 torchvision==0.8.2+cu92 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html pyyaml
 # $ pip install notebook dmipy==1.0.5  # Optional modules
 ```
+
+## Running from the Command Line
+
+```bash
+python train_and_eval.py --cfg <YAML_CONFIG_PATH>
+```
+
+where <YAML_CONFIG_PATH> is a path to a config file.  See [base config](./base.yaml) for base arguments.
+
 
 ## Tutorial
 
