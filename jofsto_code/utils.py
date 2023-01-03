@@ -1,18 +1,24 @@
 # (c) Stefano B. Blumberg, do not redistribute or modify this file and helper files
 
 
+import os
+import pickle
+import random
+
 import numpy as np
-import os, pickle, random, yaml
+import yaml
 
 
-def data_dict_to_array(data_dict, names, data_voxels=None, concat=True):
+def data_dict_to_array(data_dict, names, data_voxels=None):
+    """Conncatenate and prepare data for each split.
+
+    Args:
+    data_dict (dict): Each key is a subject
+    names (List[str])
+
+    Return:
+    Input and target data
     """
-    data_dict: dict each entry is a subject/split
-    names: list of strings
-
-    return numpy tuple array
-    """
-
     names_inp = names.copy()
     data_out_inp = tuple([data_dict[name] for name in names_inp])
     data_out_inp = np.concatenate(data_out_inp, axis=0)
@@ -37,15 +43,23 @@ def create_out_dirs(
     proj_name,
     run_name,
 ):
-    """Output saved in out_base/proj_name/run_name"""
+    """Create directories to save output if len(out_base) > 0.
 
+    Output saved in <out_base>/<proj_name>/<run_name>/
+    Results saved in <out_base>/results/<run_name>_all.npy
+    """
     # if out_base is not None and len(proj_name) is not None:
     if len(out_base) > 0 and len(proj_name) > 0:
         out_base_dir = os.path.join(out_base, proj_name)
         os.makedirs(out_base_dir, exist_ok=True)
         print("Output base directory:", out_base_dir)
+        results_dir = os.path.join(out_base_dir, "results")
+        os.makedirs(out_base_dir, exist_ok=True)
+        print("Output results directory:", out_base_dir)
+        results_fn = os.path.join(results_dir, run_name + "_all.npy")
     else:
         out_base_dir = None
+        results_fn = None
         print("Did not create output base directory")
 
     if len(out_base) > 0 and len(proj_name) > 0:
@@ -57,10 +71,16 @@ def create_out_dirs(
         print("Did not create model saved dir", flush=True)
         save_model_path = None
 
-    return out_base_dir, save_model_path
+    out_dirs = dict(
+        out_base_dir=out_base_dir,
+        results_fn=results_fn,
+        save_model_path=save_model_path,
+    )
+    return out_dirs
 
 
 def load_data(data_fil):
+    """Loads data dict from .pkl or .npy file."""
     if data_fil.split(".")[-1] == "pkl":
         with open(data_fil, "rb") as f:
             data_dict = pickle.load(f)
@@ -78,35 +98,44 @@ def create_train_val_test(
     data_test_subjs,
     pass_data=None,
 ):
+    """Creates three splits from loading data, or from passing data."""
     if pass_data is None:
         data_dict = load_data(data_fil)
     else:
         data_dict = pass_data
+
     datatrain = data_dict_to_array(data_dict, data_train_subjs)
     dataval = data_dict_to_array(data_dict, data_val_subjs)
     datatest = data_dict_to_array(data_dict, data_test_subjs)
-
     return datatrain, dataval, datatest
 
 
 def calc_affine_norm(
-    datatrain,
+    data_np,
     data_normalization,
-    prctsig,  # Percentile for data normalization
-    smallsig,  # Clip all values strictly less than
 ):
+    """Calculates constants for affine transformation of data.
 
-    if data_normalization == "original":
-        max_val = np.float32(np.percentile(datatrain, prctsig))
-    elif data_normalization == "original-measurement":
-        max_val = np.float32(np.percentile(np.abs(datatrain), prctsig, axis=0))
+    Args:
+        data_np (np.array n_samples x input/target features): Data
+        data_normalization ({"original"}): Normalization from paper
+
+    Output:
+        loss_affine (np.array,np.array):
+            Normalize data with (data - loss_affine[1])/loss_affine[0]
+    """
+
+    if data_normalization == "original-measurement":
+        prctsig = 99  # Percentile for calculating normalization
+        smallsig = 0  # Clamp values below this to zero
+        max_val = np.float32(np.percentile(np.abs(data_np), prctsig, axis=0))
     else:
         assert False
 
-    assert smallsig == 0, "Rewrite for smallsig > 0 datatrain[datatrain<smallsig] = smallsig"
+    assert smallsig == 0, "Rewrite for smallsig > 0 data_np[data_np<smallsig] = smallsig"
     min_val = smallsig
-    loss_affine = (max_val - min_val, min_val)
 
+    loss_affine = (max_val - min_val, min_val)
     return loss_affine
 
 
@@ -116,10 +145,8 @@ def create_data_norm(
     data_val_subjs,
     data_test_subjs,
     data_normalization="original-measurement",
-    prctsig=99.0,
-    smallsig=0.0,
     pass_data=None,
-    **kwargs,
+    # **kwargs,
 ):
 
     datatrain, dataval, datatest = create_train_val_test(
@@ -133,15 +160,18 @@ def create_data_norm(
     # Other preprocessing here
 
     data = dict(
-        train_x=datatrain[0], train_y=datatrain[1],
-        val_x=dataval[0], val_y=dataval[1],
-        test_x=datatest[0], test_y=datatest[1],
+        train_x=datatrain[0],
+        train_y=datatrain[1],
+        val_x=dataval[0],
+        val_y=dataval[1],
+        test_x=datatest[0],
+        test_y=datatest[1],
     )
 
-    # assume data prepared correctly
-    loss_affine_x = calc_affine_norm(datatrain[0], data_normalization, prctsig, smallsig)
-    loss_affine_y = calc_affine_norm(datatrain[1], data_normalization, prctsig, smallsig)
-    train_x_median= np.median(data["train_x"], axis=0)
+    # Assume data prepared correctly
+    loss_affine_x = calc_affine_norm(datatrain[0], data_normalization)
+    loss_affine_y = calc_affine_norm(datatrain[1], data_normalization)
+    train_x_median = np.median(data["train_x"], axis=0)
 
     assert loss_affine_y[1] in (0, None)
 
@@ -157,10 +187,10 @@ def create_data_norm(
 
 
 def load_yaml(file_path):
+    """Loads .yaml config file from file_path on disk"""
     with open(file_path, "r") as f:
         loaded_yaml = yaml.safe_load(f)
     return loaded_yaml
-
 
 
 def load_results(
@@ -169,21 +199,21 @@ def load_results(
     run_name=None,
 ):
     """Load results file from JOFSTO save.
+
     Option (i) Pass full path link
     Option (ii) Pass out_base_dir and run_name
     """
     # TODO cleanup
-    load_path = (
-        full_path
-        if full_path is not None
-        else os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")
-    )
+    if full_path is not None:
+        load_path = full_path
+    else:
+        load_path = os.path.join(os.path.join(out_base_dir, "results"), run_name + "_all.npy")
     results_load = np.load(load_path, allow_pickle=True).item()
-
     return results_load
 
 
 def print_dict(dictionary):
+    """Print all key,val pairs from dict"""
     try:
         for key, val in dictionary.items():
             print(key + ":", val)
@@ -194,19 +224,15 @@ def print_dict(dictionary):
 
 def save_results_dir(
     out_base_dir,
+    results_fn,
     results,
-    run_name,
 ):
+    """Save final results file if requested"""
     if not out_base_dir in [None, ""]:
-        results_dir = os.path.join(out_base_dir, "results")
-        os.makedirs(results_dir, exist_ok=True)
-        all_results_fil = os.path.join(results_dir, run_name + "_all.npy")
-
-        print("Saving final results in", all_results_fil, flush=True)
-        np.save(all_results_fil, results)
+        print("Saving final results in", results_fn, flush=True)
+        np.save(results_fn, results)
     else:
         print("Do not save final results")
-
 
 
 def set_random_seed_tf(seed):
@@ -217,7 +243,7 @@ def set_random_seed_tf(seed):
     try:
         tf.random.set_seed(seed)
     except:
-        tf.compat.v1.set_random_seed(seed)  # SEFS
+        tf.compat.v1.set_random_seed(seed)
     random.seed(seed)
 
 
@@ -240,14 +266,14 @@ def set_random_seed_pt(seed):
 
 def set_random_seed(
     seed,
-    framework="tf",  # {"tf","pt"}
+    framework="pt",
 ):
+    """Set random seed (int) for Pytorch (pt) or Tensorflow (tf)"""
     if framework == "tf":
         set_random_seed_tf(seed)
     elif framework == "pt":
         set_random_seed_pt(seed)
-
-    print("Random seed is", seed)
+    print(f"Random seed is {seed}")
 
 
 def set_numpy_seed(seed):
@@ -255,6 +281,7 @@ def set_numpy_seed(seed):
 
 
 def jofsto_data_format(train, val, test):
+    """Helper function, tuple-np.array or np.array for each split to JOFSTO format"""
     data_inp = dict(train=train, val=val, test=test)
     data = dict()
     for split in ("train", "val", "test"):
@@ -268,4 +295,3 @@ def jofsto_data_format(train, val, test):
     for key, val in data.items():
         assert isinstance(val, np.ndarray)
     return data
-
