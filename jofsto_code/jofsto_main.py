@@ -39,12 +39,10 @@ def run(args, pass_data=None):
 
     ## NAS hyperparameters
     network_params = dict(
-        num_units_score=args["num_units_score"],
-        num_units_task=args["num_units_task"],
-        score_activation=args["score_activation"],
+        **args["network"],
         n_features=data["n_features"], out_units=data["out_units"],
-        loss_affine_x=data["loss_affine_x"], loss_affine_y=data["loss_affine_y"],
         train_x_median=data["train_x_median"],
+        loss_affine_x=data["loss_affine_x"], loss_affine_y=data["loss_affine_y"],
     )
 
     update_params = dict(

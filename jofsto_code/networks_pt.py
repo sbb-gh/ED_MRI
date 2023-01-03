@@ -133,14 +133,12 @@ class jofsto(torch.nn.Module):
 class jofsto_network(jofsto):
     def __init__(
         self,
-        n_features,
-        out_units,
         num_units_score,
         num_units_task,
         score_activation,
+        n_features, out_units,
         train_x_median,
-        loss_affine_x=(1, 0),
-        loss_affine_y=(1, 0),
+        loss_affine_x=(1, 0), loss_affine_y=(1, 0),
         **kwargs
     ):
         """Scorer + Predictor Network, End-To-End"""
@@ -154,7 +152,7 @@ class jofsto_network(jofsto):
             final_act_fn=None,
             dropout_rate=None,
             inp_loss_affine_0=loss_affine_x[0],
-            out_loss_affine_0=None,  # weight_init=None, seed=seed,
+            out_loss_affine_0=None,
         )
 
         self.task_net = fcnet_pt(
@@ -165,7 +163,7 @@ class jofsto_network(jofsto):
             final_act_fn=None,
             dropout_rate=None,
             inp_loss_affine_0=loss_affine_x[0],
-            out_loss_affine_0=loss_affine_y[0],  # weight_init=None, seed=seed,
+            out_loss_affine_0=loss_affine_y[0],
         )
 
         self.score_activation = get_score_activation(score_activation)

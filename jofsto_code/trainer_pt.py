@@ -3,10 +3,9 @@
 
 import numpy as np
 from .networks_pt import jofsto_network
-import timeit
+import copy, timeit
 import torch
 from torch.utils.data import DataLoader
-import copy
 
 
 class Dataset(torch.utils.data.Dataset):

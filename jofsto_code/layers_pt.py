@@ -27,7 +27,6 @@ class fcnet_pt(torch.nn.Module):
         out_loss_affine_0=None,
         dropout_rate=None,
         weight_init=None,
-        seed=0,
     ):
         super().__init__()
 
@@ -57,7 +56,6 @@ class fcnet_pt(torch.nn.Module):
                 layers.append(torch.nn.Linear(in_features, num_outputs))
                 if inter_act_fn is not None:
                     layers.append(return_act_func_pt(inter_act_fn))
-                # if dropout_rate is not None: tf.keras.layers.Dropout(dropout_rate, seed=seed)
 
             layers.append(torch.nn.Linear(inter_units[-1], out_dim))
 

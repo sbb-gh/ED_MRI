@@ -92,7 +92,7 @@ data = dict(
 )
 
 # Load base JOFSTO hyperparameters
-jofsto_args = utils.load_yaml("./base.yaml")
+args = utils.load_yaml("./base.yaml")
 
 """
 ########## (5-A)
@@ -102,7 +102,7 @@ data_fil = ""  # Add path to saved file
 np.save(data_fil, data)
 print("Saving data as", data_fil)
 pass_data = None
-jofsto_args["data_fil"] = data_fil
+args["data_fil"] = data_fil
 """
 
 
@@ -117,9 +117,9 @@ pass_data = data
 """
 # Output saved as dict in save_fil=<out_base>/<proj_name>/results/<run_name>_all.npy
 # Load with np.load(str(save_fil),allow_pickle=True).item()
-jofsto_args["out_base"] = <ADD>
-jofsto_args["proj_name"] = <ADD>
-jofsto_args["run_name"] = <ADD>
+args["out_base"] = <ADD>
+args["proj_name"] = <ADD>
+args["run_name"] = <ADD>
 """
 
 ########## (7)
@@ -127,48 +127,48 @@ jofsto_args["run_name"] = <ADD>
 
 
 # Decreasing feature subsets sizes for JOFSTO to consider
-jofsto_args["C_i_values"] = [C_bar, C_bar // 2, C_bar // 4, C_bar // 8, C_bar // 16]
+args["C_i_values"] = [C_bar, C_bar // 2, C_bar // 4, C_bar // 8, C_bar // 16]
 
 # Feature subset sizess for JOFSTO evaluated on test data
-jofsto_args["C_i_eval"] = [C_bar // 2, C_bar // 4, C_bar // 8, C_bar // 16]
+args["C_i_eval"] = [C_bar // 2, C_bar // 4, C_bar // 8, C_bar // 16]
 
 # Scoring net C_bar -> num_units_score[0] -> num_units_score[1] ... -> C_bar units
-jofsto_args["num_units_score"] = [1000, 1000]
+args["network"]["num_units_score"] = [1000, 1000]
 
 # Task net C_bar -> num_units_task[0] -> num_units_task[1] ... -> M units
-jofsto_args["num_units_task"] = [1000, 1000]
+args["network"]["num_units_task"] = [1000, 1000]
 
-jofsto_main.run(args=jofsto_args, pass_data=pass_data)
+jofsto_main.run(args, pass_data)
 
 
 ########## (8)
 # Modify more JOFSTO hyperparameters, less important, may change results
 
 # Fix score after epoch, E_1 in paper
-jofsto_args["epochs_fix_sigma"] = 25
+args["epochs_fix_sigma"] = 25
 
 # Progressively set score to be sample independent across no. epochs, E_2 - E_1 in paper
-jofsto_args["epochs_decay_sigma"] = 10
+args["epochs_decay_sigma"] = 10
 
 # Progressively modify mask across number epochs, E_3 - E_2 in paper
-jofsto_args["epochs_decay"] = 10
+args["epochs_decay"] = 10
 
-jofsto_main.run(args=jofsto_args, pass_data=pass_data)
+jofsto_main.run(args, pass_data)
 
 
 ########## (9)
 # Deep learning training hyperparameters for inner loop
 
-# Training epochs per step, set large to trigger early stopping
-jofsto_args["total_epochs"] = 10000
+# Training epochs per step, set 12large to trigger early stopping
+args["total_epochs"] = 10000
 
 # Training learning rate
-jofsto_args["learning_rate"] = 0.0001
+args["learning_rate"] = 0.0001
 
 # Training batch size
-jofsto_args["batch_size"] = 1500
+args["batch_size"] = 1500
 
-jofsto_main.run(args=jofsto_args, pass_data=pass_data)
+jofsto_main.run(args, pass_data)
 
 
 ########## (10)

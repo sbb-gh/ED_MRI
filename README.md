@@ -67,16 +67,16 @@ val_sims = simulations.verdict(nsamples_val, scheme)
 test_sims = simulations.verdict(nsamples_test, scheme)
 
 data = utils.jofsto_data_format(train_sims,val_sims,test_sims)
-jofsto_args = utils.load_yaml("./base.yaml")
+args = utils.load_yaml("./base.yaml")
 
-jofsto_args["C_i_values"] = [220, 110, 55, 28, 14]
-jofsto_args["C_i_eval"] = [110, 55, 28, 14]
+args["C_i_values"] = [220, 110, 55, 28, 14]
+args["C_i_eval"] = [110, 55, 28, 14]
 
 # Set the below to network sizes, see paper-section-B
-jofsto_args["num_units_score"] = [] # CHANGE e.g. [1000, 1000]
-jofsto_args["num_units_task"] = [] # CHANGE e.g. [1000, 1000]
+args["network"]["num_units_score"] = [] # CHANGE e.g. [1000, 1000]
+args["network"]["num_units_task"] = [] # CHANGE e.g. [1000, 1000]
 
-jofsto_main.run(jofsto_args, data)
+jofsto_main.run(args, data)
 ```
 
 ### NODDI Results
@@ -95,14 +95,14 @@ val_sims = simulations.noddi(nsamples_val, scheme)
 test_sims = simulations.noddi(nsamples_test, scheme)
 
 data = utils.jofsto_data_format(train_sims,val_sims,test_sims)
-jofsto_args = utils.load_yaml("./base.yaml")
+args = utils.load_yaml("./base.yaml")
 
-jofsto_args["C_i_values"] = [3612, 1806, 903, 452, 226]
-jofsto_args["C_i_eval"] = [1806, 903, 452, 226]
+args["C_i_values"] = [3612, 1806, 903, 452, 226]
+args["C_i_eval"] = [1806, 903, 452, 226]
 
 # Set the below to network sizes, see paper-section-B
-jofsto_args["num_units_score"] = [] # CHANGE e.g. [1000, 1000]
-jofsto_args["num_units_task"] = [] # CHANGE e.g. [1000, 1000]
+args["network"]["num_units_score"] = [] # CHANGE e.g. [1000, 1000]
+args["network"]["num_units_task"] = [] # CHANGE e.g. [1000, 1000]
 
-jofsto_main.run(jofsto_args, data)
+jofsto_main.run(args, data)
 ```
