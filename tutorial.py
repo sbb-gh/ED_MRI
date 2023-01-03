@@ -102,7 +102,7 @@ data_fil = ""  # Add path to saved file
 np.save(data_fil, data)
 print("Saving data as", data_fil)
 pass_data = None
-args["data_fil"] = data_fil
+args["data_norm"]["data_fil"] = data_fil
 """
 
 
@@ -117,9 +117,9 @@ pass_data = data
 """
 # Output saved as dict in save_fil=<out_base>/<proj_name>/results/<run_name>_all.npy
 # Load with np.load(str(save_fil),allow_pickle=True).item()
-args["out_base"] = <ADD>
-args["proj_name"] = <ADD>
-args["run_name"] = <ADD>
+args["output"]["out_base"] = <ADD>
+args["output"]["proj_name"] = <ADD>
+args["output"]["run_name"] = <ADD>
 """
 
 ########## (7)
@@ -159,7 +159,7 @@ jofsto_main.run(args, pass_data)
 ########## (9)
 # Deep learning training hyperparameters for inner loop
 
-# Training epochs per step, set 12large to trigger early stopping
+# Training epochs per step, set large to use early stopping
 args["total_epochs"] = 10000
 
 # Training learning rate

@@ -1,17 +1,21 @@
 # Format as Python typing
 
-# Load data, processing and normalization
-data_fil: "" # str Path to data dictionary
-data_train_subjs: ["train"] # List[str] Data elements for training
-data_val_subjs: ["val"] # List[str] Data elements for validation
-data_test_subjs: ["test"] # List[str] Data elements for testing
-data_normalization: original-measurement # str
+# Load data, Processing and Normalization Parameters
+data_norm:
+  data_fil: "" # str Path to data dictionary
+  data_train_subjs: ["train"] # List[str] Data elements for training
+  data_val_subjs: ["val"] # List[str] Data elements for validation
+  data_test_subjs: ["test"] # List[str] Data elements for testing
+  data_normalization: original-measurement # str
 
-# Output
-out_base: "" # str Outputs saved directory, set to "" to not save results file
-proj_name: tst # str Output proj_name/run_name
-run_name: def # str Output proj_name/run_name
+# Output Directory and Project Name
+output:
+  out_base: "" # str Outputs saved directory, set to "" to not save results file
+  proj_name: tst # str Output proj_name/run_name
+  run_name: def # str Output proj_name/run_name
+
 save_output: False # bool Saves prediction on test data - may fill up disk space
+random_seed_value: 0 # int
 
 # Feature sizes
 C_i_values: [] # List[int] Values of C_1, C_2,...
@@ -27,7 +31,6 @@ network:
 total_epochs: 10000 # int E in paper
 learning_rate: 0.0001 # float
 batch_size: 1500 # int
-random_seed_value: 0 # int
 workers: 0 # int Dataloader number of workers
 no_gpu: False # bool Turn off GPU and run on CPU
 

@@ -11,7 +11,6 @@ class jofsto(torch.nn.Module):
     def __init__(
         self,
         C_i_values,
-        save_model_path,
         n_features,
         epochs,
         epochs_decay,
@@ -21,7 +20,7 @@ class jofsto(torch.nn.Module):
     ):
         super().__init__()
         self.C_i_values = C_i_values
-        self.save_model_path = save_model_path
+
         self.n_features = n_features
         self.epochs_decay = epochs_decay
         assert epochs_decay <= epochs
@@ -138,12 +137,12 @@ class jofsto_network(jofsto):
         score_activation,
         n_features, out_units,
         train_x_median,
-        loss_affine_x=(1, 0), loss_affine_y=(1, 0),
-        **kwargs
+        loss_affine_x, loss_affine_y,
+        update_params,
     ):
         """Scorer + Predictor Network, End-To-End"""
 
-        super().__init__(n_features=n_features, **kwargs)
+        super().__init__(**update_params,)
         self.score_net = fcnet_pt(
             in_dim=n_features,
             out_dim=n_features,

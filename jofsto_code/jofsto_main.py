@@ -22,23 +22,19 @@ def return_argparser():
 def run(args, pass_data=None):
 
     assert args["epochs_fix_sigma"] + args["epochs_decay_sigma"] + args["epochs_decay"] < args["total_epochs"]
-
-    data = create_data_norm(**args, pass_data=pass_data)
-    out_base_dir, save_model_path = create_out_dirs(args["out_base"], args["proj_name"], args["run_name"])
+    data = create_data_norm(**args["data_norm"], pass_data=pass_data)
+    out_base_dir, save_model_path = create_out_dirs(**args["output"])
     print_dict(args)
     set_random_seed(seed=args["random_seed_value"], framework="pt")
 
     ## Hyperparameters
     options = dict(
-        out_base=args["out_base"],
-        proj_name=args["proj_name"],
-        run_name=args["run_name"],
         no_gpu=args["no_gpu"],
         save_output=args["save_output"],
     )
 
     ## NAS hyperparameters
-    network_params = dict(
+    jofsto_network = dict(
         **args["network"],
         n_features=data["n_features"], out_units=data["out_units"],
         train_x_median=data["train_x_median"],
@@ -67,7 +63,7 @@ def run(args, pass_data=None):
     nnet = Trainer(
         save_model_path,
         update_params=update_params,
-        network_params=network_params,
+        jofsto_network=jofsto_network,
         dataloader_params=dataloader_params,
         optimizer_params=optimizer_params,
         options=options,
@@ -80,8 +76,10 @@ def run(args, pass_data=None):
     print("Total training time (s):", time_s, "(h):", time_s / 3600)
 
     results["args"] = args
-    results["data_test_subjs"] = args["data_test_subjs"]
+    results["data_test_subjs"] = args["data_norm"]["data_test_subjs"]
     results["C_i_eval"] = args["C_i_eval"]
-    save_results_dir(out_base_dir=out_base_dir, results=results, run_name=args["run_name"])
+    results["proj_name"] = args["output"]["proj_name"]
+    results["run_name"] = args["output"]["run_name"]
+    save_results_dir(out_base_dir=out_base_dir, results=results, run_name=args["output"]["run_name"])
 
     return results

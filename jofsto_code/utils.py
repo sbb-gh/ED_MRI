@@ -34,21 +34,23 @@ def data_dict_to_array(data_dict, names, data_voxels=None, concat=True):
 
 def create_out_dirs(
     out_base,
-    proj_base_name,
     proj_name,
+    run_name,
 ):
-    # if out_base is not None and len(proj_base_name) is not None:
-    if len(out_base) > 0 and len(proj_base_name) > 0:
-        out_base_dir = os.path.join(out_base, proj_base_name)
+    """Output saved in out_base/proj_name/run_name"""
+
+    # if out_base is not None and len(proj_name) is not None:
+    if len(out_base) > 0 and len(proj_name) > 0:
+        out_base_dir = os.path.join(out_base, proj_name)
         os.makedirs(out_base_dir, exist_ok=True)
         print("Output base directory:", out_base_dir)
     else:
         out_base_dir = None
         print("Did not create output base directory")
 
-    if len(out_base) > 0 and len(proj_base_name) > 0:
-        # if out_base is not None and proj_base_name is not None:
-        save_model_path = os.path.join(out_base_dir, proj_name)
+    if len(out_base) > 0 and len(proj_name) > 0:
+        # if out_base is not None and proj_name is not None:
+        save_model_path = os.path.join(out_base_dir, run_name)
         # os.makedirs(save_model_path,exist_ok=True)
         print("Model saved", save_model_path, flush=True)
     else:

@@ -29,21 +29,21 @@ class Trainer:
         self,
         save_model_path,
         update_params,
-        network_params,
+        jofsto_network,
         dataloader_params,
         optimizer_params,
         options=None,
     ):
 
         self.save_model_path = save_model_path
-        self.network_params = network_params
+        self.jofsto_network = jofsto_network
         self.update_params = update_params
         self.options = options
         self.dataloader_params = dataloader_params
         self.optimizer_params = optimizer_params
 
     def create_model(self):
-        model = jofsto_network(**{**self.network_params, **self.update_params})
+        model = jofsto_network(**self.jofsto_network, update_params=self.update_params)
         print(model)
         self.model = model.to(self.device)
 
@@ -166,10 +166,7 @@ class Trainer:
         self.create_optimizer()
         self.create_dataloaders(train_x, train_y, val_x, val_y)
 
-        results = dict(
-            proj_name=self.options["proj_name"],
-            run_name=self.options["run_name"],
-        )
+        results = dict()
 
         for t, C_i in enumerate(self.update_params["C_i_values"], 1):
             self.train_step()
