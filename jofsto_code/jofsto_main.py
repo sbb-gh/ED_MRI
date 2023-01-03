@@ -1,7 +1,6 @@
 # (c) Stefano B. Blumberg, do not redistribute or modify this file and helper files
 
-import argparse
-import timeit
+import argparse, timeit
 from .trainer_pt import Trainer
 from .utils import (
     create_data_norm,
@@ -33,7 +32,7 @@ def run(args, pass_data=None):
         save_output=args["save_output"],
     )
 
-    ## NAS hyperparameters
+    # Network structure hyperparameters
     jofsto_network = dict(
         **args["network"],
         n_features=data["n_features"], out_units=data["out_units"],
@@ -61,7 +60,6 @@ def run(args, pass_data=None):
     )
 
     nnet = Trainer(
-        save_model_path,
         update_params=update_params,
         jofsto_network=jofsto_network,
         dataloader_params=dataloader_params,
@@ -71,15 +69,11 @@ def run(args, pass_data=None):
 
     start_train_timer = timeit.default_timer()
     results = nnet.train(**data)
+    results["args"] = args
 
     time_s = timeit.default_timer() - start_train_timer
-    print("Total training time (s):", time_s, "(h):", time_s / 3600)
+    print(f"Total training time (s): {time_s} (h): {time_s / 3600}")
 
-    results["args"] = args
-    results["data_test_subjs"] = args["data_norm"]["data_test_subjs"]
-    results["C_i_eval"] = args["C_i_eval"]
-    results["proj_name"] = args["output"]["proj_name"]
-    results["run_name"] = args["output"]["run_name"]
     save_results_dir(out_base_dir=out_base_dir, results=results, run_name=args["output"]["run_name"])
 
     return results

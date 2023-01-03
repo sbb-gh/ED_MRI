@@ -27,7 +27,6 @@ class Dataset(torch.utils.data.Dataset):
 class Trainer:
     def __init__(
         self,
-        save_model_path,
         update_params,
         jofsto_network,
         dataloader_params,
@@ -35,7 +34,6 @@ class Trainer:
         options=None,
     ):
 
-        self.save_model_path = save_model_path
         self.jofsto_network = jofsto_network
         self.update_params = update_params
         self.options = options
@@ -106,7 +104,7 @@ class Trainer:
         )
         if epoch >= start_es:
             if epoch_val[-1] == min(epoch_val[start_es:]):
-                print("cached best_state_dict")
+                print("Cached best_state_dict")
                 self.best_state_dict = copy.deepcopy(self.model.state_dict())
         if len(epoch_val) > (start_es + patience):
             if epoch_val[-patience - 1] < min(epoch_val[-patience:]):
@@ -161,7 +159,7 @@ class Trainer:
             self.device = "cpu"
         else:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print("Run training on:", self.device, flush=True)
+        print(f"Run training on: {self.device}", flush=True)
         self.create_model()
         self.create_optimizer()
         self.create_dataloaders(train_x, train_y, val_x, val_y)
@@ -180,7 +178,7 @@ class Trainer:
                 m, sigma_bar = m.cpu().numpy(), sigma_bar.cpu().numpy()
                 measurements = np.where(m == 1)[0]
 
-                print("val_joint", val_joint, "test_joint", test_joint)
+                print(f"val_joint {val_joint} test_joint {test_joint}")
                 results[C_i] = dict(
                     val_joint=val_joint,
                     test_joint=test_joint,

@@ -270,3 +270,4 @@ def jofsto_data_format(train, val, test):
     for key, val in data.items():
         assert isinstance(val, np.ndarray)
     return data
+

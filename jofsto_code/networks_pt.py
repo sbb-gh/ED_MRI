@@ -2,8 +2,6 @@
 
 
 import torch
-
-# import .layers_pt as layers_pt
 from .layers_pt import fcnet_pt, get_score_activation, DownsamplingMultLayer
 
 
@@ -71,7 +69,6 @@ class jofsto(torch.nn.Module):
             print("Trigger epochs_fix_sigma", flush=True)
             sigma_average, sigma_bar = self.get("sigma_average", "sigma_bar")
             sigma_bar = 0.5 * (sigma_bar + sigma_average)
-            # self.assign(sigma_mult=0.0,sigma_bar=sigma_bar); print("sigma_mult=0.0, sigma_bar = 0.5*(sigma_bar+sigma_average)")
             self.assign(sigma_bar=sigma_bar)
             print("sigma_bar = 0.5*(sigma_bar+sigma_average)")
 
@@ -179,7 +176,6 @@ class jofsto_network(jofsto):
 
     def forward_eval(self, x_inp, score):
         x_subsampled_weighted = self.downsampling_mult_layer(x_inp, score)
-        # print(torch.mean(score,axis=0))
         x = self.task_net(x_subsampled_weighted)
         return x
 
