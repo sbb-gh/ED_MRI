@@ -9,7 +9,7 @@ class jofsto(torch.nn.Module):
     def __init__(
         self,
         C_i_values,
-        n_features,
+        C_i_eval,
         epochs,
         epochs_decay,
         epochs_fix_sigma,
@@ -18,16 +18,19 @@ class jofsto(torch.nn.Module):
     ):
         super().__init__()
         self.C_i_values = C_i_values
+        self.n_features = self.C_i_values[0]
 
-        self.n_features = n_features
         self.epochs_decay = epochs_decay
-        assert epochs_decay <= epochs
         self.alpha_m = 1.0 / epochs_decay
 
         self.epochs_fix_sigma = epochs_fix_sigma
-        assert epochs_fix_sigma <= epochs
         self.epochs_decay_sigma = epochs_decay_sigma
         self.alpha_sigma = 0.5 / epochs_decay_sigma
+
+        assert epochs_fix_sigma + epochs_decay_sigma + epochs_decay < epochs
+        for C_i in C_i_eval:
+            if C_i not in C_i_values:
+                print(f"Put {C_i} in C_i_eval arguments")
 
         self.t = 0
 
@@ -135,11 +138,11 @@ class jofsto_network(jofsto):
         n_features, out_units,
         train_x_median,
         loss_affine_x, loss_affine_y,
-        update_params,
+        jofsto_train_eval,
     ):
         """Scorer + Predictor Network, End-To-End"""
 
-        super().__init__(**update_params,)
+        super().__init__(**jofsto_train_eval)
         self.score_net = fcnet_pt(
             in_dim=n_features,
             out_dim=n_features,

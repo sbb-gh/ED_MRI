@@ -133,29 +133,27 @@ def create_data_norm(
     # Other preprocessing here
 
     data = dict(
-        train_x=datatrain[0],
-        train_y=datatrain[1],
-        val_x=dataval[0],
-        val_y=dataval[1],
-        test_x=datatest[0],
-        test_y=datatest[1],
+        train_x=datatrain[0], train_y=datatrain[1],
+        val_x=dataval[0], val_y=dataval[1],
+        test_x=datatest[0], test_y=datatest[1],
     )
 
     # assume data prepared correctly
-    data["n_features"] = datatrain[0].shape[1]
-    data["out_units"] = datatrain[1].shape[1]
-
     loss_affine_x = calc_affine_norm(datatrain[0], data_normalization, prctsig, smallsig)
     loss_affine_y = calc_affine_norm(datatrain[1], data_normalization, prctsig, smallsig)
+    train_x_median= np.median(data["train_x"], axis=0)
 
     assert loss_affine_y[1] in (0, None)
 
-    data["loss_affine_x"] = loss_affine_x
-    data["loss_affine_y"] = loss_affine_y
+    data_features_norm = dict(
+        n_features=datatrain[0].shape[1],
+        out_units=datatrain[1].shape[1],
+        loss_affine_x=loss_affine_x,
+        loss_affine_y=loss_affine_y,
+        train_x_median=train_x_median,
+    )
 
-    data["train_x_median"] = np.median(data["train_x"], axis=0)
-
-    return data
+    return data, data_features_norm
 
 
 def load_yaml(file_path):

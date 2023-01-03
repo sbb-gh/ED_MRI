@@ -27,37 +27,32 @@ class Dataset(torch.utils.data.Dataset):
 class Trainer:
     def __init__(
         self,
-        update_params,
         jofsto_network,
-        dataloader_params,
-        optimizer_params,
-        options=None,
+        jofsto_train_eval,
+        train_pytorch,
+        other_options,
     ):
 
         self.jofsto_network = jofsto_network
-        self.update_params = update_params
-        self.options = options
-        self.dataloader_params = dataloader_params
-        self.optimizer_params = optimizer_params
+        self.jofsto_train_eval = jofsto_train_eval
+        self.train_pytorch = train_pytorch
+        self.other_options = other_options
 
     def create_model(self):
-        model = jofsto_network(**self.jofsto_network, update_params=self.update_params)
+        model = jofsto_network(**self.jofsto_network, jofsto_train_eval=self.jofsto_train_eval)
         print(model)
         self.model = model.to(self.device)
 
     def create_optimizer(self):
         # Only have ADAM optimizer for now
-        self.optimizer = torch.optim.Adam(
-            self.model.parameters(),
-            **self.optimizer_params,
-        )
+        self.optimizer = torch.optim.Adam(self.model.parameters(), **self.train_pytorch["optimizer_params"])
 
     def create_dataloaders(self, train_x, train_y, val_x, val_y):
 
         train_data = Dataset(train_x, train_y)
         val_data = Dataset(val_x, val_y)
-        self.train_loader = DataLoader(train_data, **self.dataloader_params)
-        self.val_loader = DataLoader(val_data, **self.dataloader_params)
+        self.train_loader = DataLoader(train_data, **self.train_pytorch["dataloader_params"])
+        self.val_loader = DataLoader(val_data, **self.train_pytorch["dataloader_params"])
 
     def train_val_epoch(self, epoch):
         train_losses = []
@@ -97,9 +92,9 @@ class Trainer:
     def early_stopping(self, epoch, epoch_val):
         patience = 20
         start_es = (
-            self.update_params["epochs_fix_sigma"]
-            + self.update_params["epochs_decay_sigma"]
-            + self.update_params["epochs_decay"]
+            self.jofsto_train_eval["epochs_fix_sigma"]
+            + self.jofsto_train_eval["epochs_decay_sigma"]
+            + self.jofsto_train_eval["epochs_decay"]
             + 1
         )
         if epoch >= start_es:
@@ -116,7 +111,7 @@ class Trainer:
         timer_t = timeit.default_timer()
         self.model.on_train_begin()
         self.best_state_dict = None
-        for epoch in range(self.update_params["epochs"]):
+        for epoch in range(self.jofsto_train_eval["epochs"]):
             mean_train, mean_val = self.train_val_epoch(epoch=epoch)
             epoch_val.append(mean_val)
             if self.early_stopping(epoch, epoch_val):
@@ -142,7 +137,7 @@ class Trainer:
             out = []
             loader = torch.utils.data.DataLoader(
                 Dataset(data_x),
-                batch_size=self.dataloader_params["batch_size"],
+                batch_size=self.train_pytorch["dataloader_params"]["batch_size"],
                 shuffle=False,
             )
             for i, x in enumerate(loader):
@@ -155,7 +150,7 @@ class Trainer:
         return float(loss), pred_all.numpy()
 
     def train(self, train_x, train_y, val_x, val_y, test_x, test_y, **kwargs):
-        if self.options["no_gpu"]:
+        if self.other_options["no_gpu"]:
             self.device = "cpu"
         else:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -166,10 +161,10 @@ class Trainer:
 
         results = dict()
 
-        for t, C_i in enumerate(self.update_params["C_i_values"], 1):
+        for t, C_i in enumerate(self.jofsto_train_eval["C_i_values"], 1):
             self.train_step()
 
-            if C_i in self.update_params["C_i_eval"]:
+            if C_i in self.jofsto_train_eval["C_i_eval"]:
 
                 val_joint, val_pred = self.eval_step(val_x, val_y)
                 test_joint, test_pred = self.eval_step(test_x, test_y)
@@ -185,7 +180,7 @@ class Trainer:
                     measurements=measurements,
                     sigma_bar=sigma_bar,
                 )
-                if self.options["save_output"]:
+                if self.other_options["save_output"]:
                     results[C_i]["test_output"] = test_pred
 
         print("End of Training")

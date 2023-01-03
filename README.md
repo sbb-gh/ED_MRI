@@ -69,8 +69,8 @@ test_sims = simulations.verdict(nsamples_test, scheme)
 data = utils.jofsto_data_format(train_sims,val_sims,test_sims)
 args = utils.load_yaml("./base.yaml")
 
-args["C_i_values"] = [220, 110, 55, 28, 14]
-args["C_i_eval"] = [110, 55, 28, 14]
+args["jofsto_train_eval"]["C_i_values"] = [220, 110, 55, 28, 14]
+args["jofsto_train_eval"]["C_i_eval"] = [110, 55, 28, 14]
 
 # Set the below to network sizes, see paper-section-B
 args["network"]["num_units_score"] = [] # CHANGE e.g. [1000, 1000]
@@ -97,8 +97,8 @@ test_sims = simulations.noddi(nsamples_test, scheme)
 data = utils.jofsto_data_format(train_sims,val_sims,test_sims)
 args = utils.load_yaml("./base.yaml")
 
-args["C_i_values"] = [3612, 1806, 903, 452, 226]
-args["C_i_eval"] = [1806, 903, 452, 226]
+args["jofsto_train_eval"]["C_i_values"] = [3612, 1806, 903, 452, 226]
+args["jofsto_train_eval"]["C_i_eval"] = [1806, 903, 452, 226]
 
 # Set the below to network sizes, see paper-section-B
 args["network"]["num_units_score"] = [] # CHANGE e.g. [1000, 1000]
