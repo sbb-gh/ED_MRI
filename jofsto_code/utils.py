@@ -120,7 +120,7 @@ def calc_affine_norm(
         data_np (np.array n_samples x input/target features): Data
         data_normalization ({"original"}): Normalization from paper
 
-    Output:
+    Return:
         loss_affine (np.array,np.array):
             Normalize data with (data - loss_affine[1])/loss_affine[0]
     """
@@ -146,8 +146,16 @@ def create_data_norm(
     data_test_subjs,
     data_normalization="original-measurement",
     pass_data=None,
-    # **kwargs,
 ):
+    """Process data and create splits.
+
+    Args:
+    data_norm: See config file
+
+    Return:
+    data: Processed data, input-target of splits
+    data_features_norm: Other information/features of the data
+    """
 
     datatrain, dataval, datatest = create_train_val_test(
         data_fil,

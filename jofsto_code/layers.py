@@ -4,7 +4,8 @@
 import torch
 
 
-def return_act_func_pt(act_func):
+def return_act_func(act_func):
+    """Returns an activation function."""
     if act_func == "relu":
         return torch.nn.ReLU()
     elif act_func == "sigmoid":
@@ -16,6 +17,8 @@ def return_act_func_pt(act_func):
 
 
 class fcnet_pt(torch.nn.Module):
+    """Fully-connected network."""
+
     def __init__(
         self,
         in_dim,
@@ -25,11 +28,18 @@ class fcnet_pt(torch.nn.Module):
         final_act_fn=None,
         inp_loss_affine_0=None,
         out_loss_affine_0=None,
-        dropout_rate=None,
-        weight_init=None,
     ):
+        """
+        Args:
+        in_dim (int): Number of input units
+        out_dim: Number of output units
+        inter_units (List[int]): Number of units for intermediate layers
+        inter_act_fn (str): Activation function for intermediate layers
+        final_act_fn: Actication function on last layers
+        inp_loss_affine_0: Affine normalizer multiplier for input
+        out_loss_affine_0: Affine normalizer multiplier for output
+        """
         super().__init__()
-
         if inp_loss_affine_0 is None:
             inp_affine_0_prod = 1
         else:
@@ -55,12 +65,12 @@ class fcnet_pt(torch.nn.Module):
 
                 layers.append(torch.nn.Linear(in_features, num_outputs))
                 if inter_act_fn is not None:
-                    layers.append(return_act_func_pt(inter_act_fn))
+                    layers.append(return_act_func(inter_act_fn))
 
             layers.append(torch.nn.Linear(inter_units[-1], out_dim))
 
         if final_act_fn is not None:
-            layers.append(return_act_func_pt(final_act_fn))
+            layers.append(return_act_func(final_act_fn))
         self.layers = torch.nn.Sequential(*layers)
 
     def forward(self, x):
@@ -73,6 +83,8 @@ class fcnet_pt(torch.nn.Module):
 
 
 class DownsamplingMultLayer(torch.nn.Module):
+    """Subsampling layer also holds JOFSTO variables."""
+
     def __init__(self, n_features, train_x_median):
         super().__init__()
         self.register_buffer("sigma", torch.zeros(n_features))
@@ -107,6 +119,9 @@ class DownsamplingMultLayer(torch.nn.Module):
         subsample = self.m * x_inp + (1 - self.m) * self.train_x_median
         out = score_tot * subsample
         return out
+
+
+### Options for activation function
 
 
 class Sigmoid(torch.nn.Module):

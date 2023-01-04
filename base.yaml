@@ -24,7 +24,6 @@ network:
 jofsto_train_eval:
   C_i_values: [] # List[int] Values of C_1, C_2,...
   C_i_eval: [] # List[int] Evaluate at this C
-
   epochs: 10000 # int E in paper
   epochs_fix_sigma: 25 # int Fix score after epoch, E_1 in paper
   epochs_decay_sigma: 10 # int Progressively set score to be sample independent across number epochs, E_2 - E_1 in paper

@@ -1,7 +1,6 @@
 Stefano
 - Overview for text files -> Also do in MATLAB
 - High-level example of data format, in tutorial and readme, maybe better to have examples ??
-- Cleanup JOFSTO, remove unncecessary fluff, add accessability to sections
 - Option in-training noramlizations, currently only affine.  Descripti/tutorial on of normalization?
 - Explain data normalization concisely, normalization in MRI implies different channels have different statistics.
 - Option to save network, instructions on how to load and use
