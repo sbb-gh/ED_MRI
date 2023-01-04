@@ -55,7 +55,7 @@ Duplicating the results for VERDICT and NODDI in table 2 in our [paper](https://
 
 ```python
 import simulations
-from jofsto_code import jofsto_main, utils
+from jofsto_code import data_processing, jofsto_main, utils
 from dmipy.data import saved_acquisition_schemes
 
 scheme = saved_acquisition_schemes.panagiotaki_verdict_acquisition_scheme()
@@ -66,7 +66,7 @@ train_sims = simulations.verdict(nsamples_train, scheme)
 val_sims = simulations.verdict(nsamples_val, scheme)
 test_sims = simulations.verdict(nsamples_test, scheme)
 
-data = utils.jofsto_data_format(train_sims,val_sims,test_sims)
+data = data_processing.jofsto_data_format(train_sims,val_sims,test_sims)
 args = utils.load_yaml("./base.yaml")
 
 args["jofsto_train_eval"]["C_i_values"] = [220, 110, 55, 28, 14]
@@ -83,7 +83,7 @@ jofsto_main.run(args, data)
 
 ```python
 import simulations
-from jofsto_code import jofsto_main, utils
+from jofsto_code import data_processing, jofsto_main, utils
 from dmipy.data import saved_acquisition_schemes
 
 scheme = saved_acquisition_schemes.isbi2015_white_matter_challenge_scheme()
@@ -94,7 +94,7 @@ train_sims = simulations.noddi(nsamples_train, scheme)
 val_sims = simulations.noddi(nsamples_val, scheme)
 test_sims = simulations.noddi(nsamples_test, scheme)
 
-data = utils.jofsto_data_format(train_sims,val_sims,test_sims)
+data = data_processing.jofsto_data_format(train_sims,val_sims,test_sims)
 args = utils.load_yaml("./base.yaml")
 
 args["jofsto_train_eval"]["C_i_values"] = [3612, 1806, 903, 452, 226]

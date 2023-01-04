@@ -3,8 +3,9 @@
 import argparse
 import timeit
 
+from .data_processing import create_data_norm
 from .trainer import Trainer
-from .utils import create_data_norm, create_out_dirs, print_dict, save_results_dir, set_random_seed
+from .utils import create_out_dirs, print_dict, save_results_dir, set_random_seed
 
 
 def return_argparser():
