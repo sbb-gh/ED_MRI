@@ -10,7 +10,21 @@ Code requires: pytorch, numpy, pyyaml.
 
 Some examples require additional packages: notebook (Jupyter Notebook), dmipy (for simulating data).
 
-We use PyTorch v1.7.1, cuda 9.2 on the GPU, and provide example installation instructions:
+The code can be run on CPU or GPU.
+
+We use PyTorch v1.7.1, cuda 9.2 on the GPU. 
+
+We recommend installing in a virtual environment, e.g. using Conda or Pyenv.
+
+Example installations:
+
+### Example Installation with no virtual environment (NOT RECOMMENDED)
+
+Install the following packages then try to run "example_xxx.ipynb"
+
+```bash
+$ pip install numpy torch torchvision torchaudio pyyaml notebook
+```
 
 ### Example Installation using Conda
 
@@ -34,6 +48,32 @@ $ pip install torch==1.7.1+cu92 torchvision==0.8.2+cu92 torchaudio==0.7.2 -f htt
 # $ pip install notebook dmipy==1.0.5  # Optional modules
 ```
 
+## Quick start instructions: optimising an acquisition protocol from simulated data
+
+We anticipant that many code users will want to design an acquisition scheme optimised for their model of choice. This can be done as follows. 
+
+### Step 1. Simulate data for a super-design acquisition scheme using their model 
+A "super-design" is a rich acquisition scheme that covers the space of available acquisition parameters. For example to design a diffusion MRI experiment with maximum b-value 3 ms/μm<sup>2</sup>, an appropriate super design might be b=0, 0.01, 0.02, 0.03,..., 2.99, 3 ms/μm<sup>2</sup> with 20 gradient directions at each b-value (20 × 300 = 6000 total measurements).
+
+To simulate data, you can utilise the signal equation of your model of choice (whether diffusion MRI or quantitative MRI). See *simulate\_canonical\_examples.ipynb* and *simulations.py* for examples.
+
+The output from your simulations should be three .npy files:
+
+* *model\_name*\_parameters_gt.npy: array containing the simulation ground truth parameters
+* *model\_name*\_signals_super.npy: array containing the simulation super-design signals
+* *model\_name*\_signals_super.npy: array containing the simulation super-design acquisition parameters
+
+### Step 2. Train JOFSTO on the simulated data 
+
+The above three files are then used as input for either of:
+
+* *optimise\_protocol\_from\_simulated\_data.ipynb* 
+* *optimise\_protocol\_from\_simulated\_data.py*
+
+
+
+
+
 ## Running from the Command Line
 
 ```bash
@@ -42,12 +82,11 @@ python train_and_eval.py --cfg <YAML_CONFIG_PATH>
 
 where <YAML_CONFIG_PATH> is a path to a config file.  See [base config](./base.yaml) for base arguments.
 
-
 ## Tutorial
 
-We provide a tutorial [in tutorial.py](./tutorial.py) that provides examples on generating data, options to load the data into JOFSTO, various hyperparameter choices for JOFSTO, and options to save the results.
+We provide a more comprehensive tutorial [in tutorial.py](./tutorial.py) that provides examples on generating data, options to load the data into JOFSTO, various hyperparameter choices for JOFSTO, and options to save the results.
 
-## Results
+## Replicating Results
 
 Duplicating the results for VERDICT and NODDI in table 2 in our [paper](https://arxiv.org/pdf/2210.06891.pdf).  We provide Python code to generate data, train JOFSTO and perform evaulation.  Note, to replicate exact results, we perform a hyperparameter search on the two networks - described in paper-section-B.
 
