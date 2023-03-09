@@ -18,9 +18,9 @@ We recommend installing in a virtual environment, e.g. using Conda or Pyenv.
 
 Example installations:
 
-### Example Installation with no virtual environment (NOT RECOMMENDED)
+### Example Installation with no virtual environment (not recommended)
 
-Install the following packages then try to run "example_xxx.ipynb"
+Install the following packages
 
 ```bash
 $ pip install numpy torch torchvision torchaudio pyyaml notebook
@@ -57,11 +57,11 @@ A "super-design" is a rich acquisition scheme that covers the space of available
 
 To simulate data, you can utilise the signal equation of your model of choice (whether diffusion MRI or quantitative MRI). See *simulate\_canonical\_examples.ipynb* and *simulations.py* for examples.
 
-The output from your simulations should be three .npy files:
+The output from your simulations should be three .npy files: 
 
-* *model\_name*\_parameters_gt.npy: array containing the simulation ground truth parameters
-* *model\_name*\_signals_super.npy: array containing the simulation super-design signals
-* *model\_name*\_signals_super.npy: array containing the simulation super-design acquisition parameters
+* Saved numpy array containing the simulation ground truth parameters (e.g. *model\_name*\_parameters_gt.npy) 
+* Saved numpy array containing the simulation super-design signals (e.g. *model\_name*\_signals_super.npy)
+* Saved numpy array containing the simulation super-design acquisition parameters (e.g. *model\_name*\_signals_super.npy:)
 
 ### Step 2. Train JOFSTO on the simulated data 
 
