@@ -24,7 +24,7 @@ def create_out_dirs(
         os.makedirs(out_base_dir, exist_ok=True)
         print("Output base directory:", out_base_dir)
         results_dir = os.path.join(out_base_dir, "results")
-        os.makedirs(out_base_dir, exist_ok=True)
+        os.makedirs(results_dir, exist_ok=True)
         print("Output results directory:", out_base_dir)
         results_fn = os.path.join(results_dir, run_name + "_all.npy")
     else:
