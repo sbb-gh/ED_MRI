@@ -55,7 +55,7 @@ pip install git+https://github.com/sbb-gh/ED_MRI.git@main notebook
 
 ```bash
 pip install numpy==1.23.4 git+https://github.com/AthenaEPI/dmipy.git@1.0.1
-pip install dipy==1.5.0
+pip install dipy==1.9.0
 pip install nibabel==5.1.0
 pip install git+https://github.com/sbb-gh/tadred.git@main # can also install tadred from source: www.github.com/sbb-gh/tadred
 pip install notebook
