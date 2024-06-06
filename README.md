@@ -13,11 +13,15 @@ stefano.blumberg.17@ucl.ac.uk
 slatorp@cardiff.ac.uk
 
 
-## Installation Part 1: Environment
+## Installation
+
+We provide example instructions to first create an environment, then install packages within this environment.  We recommend users use an environment to isolate all modules from the global environment.
+
+### Installation Part 1: Environment
 
 First create an environment and enter it, we use Python v3.10.4.  We provide two examples either using Pyenv or Conda:
 
-## Pyenv
+#### Pyenv
 
 ```bash
 # Pyenv documentation is [link](https://github.com/pyenv), where <INSTALL_DIR> is the directory the virtual environment is installed in.
@@ -25,7 +29,7 @@ python3.10 -m venv <INSTALL_DIR>/ED_MRI_env # Use compatible Python version e.g.
 . <INSTALL_DIR>/ED_MRI_env/bin/activate
 ```
 
-## Conda
+#### Conda
 
 ```bash
 # Conda documentation is [link](https://docs.conda.io/en/latest/), where <INSTALL_DIR> is the directory the virtual environment is installed in.
@@ -34,7 +38,7 @@ conda activate ED_MRI_env
 ```
 
 
-## Installation Part 2: TADRED and other Packages
+### Installation Part 2: TADRED and other Packages
 
 Code requires:<br>
 [tadred](https://github.com/sbb-gh/tadred/tree/main): the novel method presented in the paper with dependencies pytorch, numpy, pyyaml, hydra,<br>
@@ -44,14 +48,14 @@ Code is tested using PyTorch v2.0.0, cuda 11.7 on the GPU, dipy v1.5.0, nibabel 
 
 We provide two options for installing the code:
 
-### Python Package from Source
+#### Python Package from Source
 
 
 ```bash
 pip install git+https://github.com/sbb-gh/ED_MRI.git@main notebook
 ```
 
-### Using pip
+#### Using pip
 
 ```bash
 pip install numpy==1.23.4 git+https://github.com/AthenaEPI/dmipy.git@1.0.1
