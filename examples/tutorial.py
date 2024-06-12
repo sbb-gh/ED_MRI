@@ -1,14 +1,13 @@
 """Copyright 2024 Stefano B. Blumberg and Paddy J. Slator
 
-Python-based tutorial.
-
-`We encourage users to explore different options for data generation, preprocessing
-and TADRED hyperparameters - check www.github.com/sbb-gh/tadred/blob/main/tadred/types.py`
+Python-based tutorial, this is an overview for the user to understand how to use TADRED on dummy simulated data.
+We encourage users to explore different options for data generation, preprocessing
+and TADRED hyperparameters - check www.github.com/sbb-gh/tadred/blob/main/tadred/types.py
 
 
 Overview for cells:
     - Choose data size splits 2
-    - Generate data example 3
+    - Generate dummy data example 3
     - Data format for TADRED 4
     - Option to pass data directly, or save to disk and load 5
     - Option to save output 6

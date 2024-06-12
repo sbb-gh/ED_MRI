@@ -21,7 +21,7 @@ We provide example instructions to first create an environment, then install pac
 
 First create an environment and enter it, we use Python v3.10.4.  We provide two examples either using Pyenv or Conda:
 
-#### Pyenv
+#### Install Environment Using Pyenv
 
 ```bash
 # Pyenv documentation is [link](https://github.com/pyenv), where <INSTALL_DIR> is the directory the virtual environment is installed in.
@@ -29,7 +29,7 @@ python3.10 -m venv <INSTALL_DIR>/ED_MRI_env # Use compatible Python version e.g.
 . <INSTALL_DIR>/ED_MRI_env/bin/activate
 ```
 
-#### Conda
+#### Install Environment Using Conda
 
 ```bash
 # Conda documentation is [link](https://docs.conda.io/en/latest/), where <INSTALL_DIR> is the directory the virtual environment is installed in.
@@ -38,7 +38,7 @@ conda activate ED_MRI_env
 ```
 
 
-### Installation Part 2: TADRED and other Packages
+### Installation Part 2: TADRED and Other Packages
 
 Code requires:<br>
 [tadred](https://github.com/sbb-gh/tadred/tree/main): the novel method presented in the paper with dependencies pytorch, numpy, pyyaml, hydra,<br>
@@ -61,9 +61,18 @@ pip install git+https://github.com/sbb-gh/ED_MRI.git@main notebook
 pip install numpy==1.23.4 git+https://github.com/AthenaEPI/dmipy.git@1.0.1
 pip install dipy==1.9.0
 pip install nibabel==5.1.0
-pip install git+https://github.com/sbb-gh/tadred.git@main # can also install tadred from source: www.github.com/sbb-gh/tadred
+pip install git+https://github.com/sbb-gh/tadred.git@main # can also install tadred from source to examine/modify files from www.github.com/sbb-gh/tadred
 pip install notebook
 ```
+
+## Replicating Results in Paper
+
+First install the environment and enter the environment, as explained above.  Then simply run
+
+```bash
+python paper_experiments.py
+```
+
 
 
 ## Quick start instructions: optimising an acquisition protocol from simulated data
@@ -88,15 +97,7 @@ The above three files are then used as input for either of:
 * *optimise\_protocol\_from\_simulated\_data.ipynb*
 * *optimise\_protocol\_from\_simulated\_data.py*
 
-## Running from the Command Line
-
-```bash
-python train_and_eval.py --cfg <YAML_CONFIG_PATH>
-```
-
-where <YAML_CONFIG_PATH> is a path to a config file.  See [base config](./base.yaml) for base arguments.
-
 ## Tutorial
 
-We provide a more comprehensive tutorial [in tutorial.py](./tutorial.py) that provides examples on generating data, options to load the data into TADRED, various hyperparameter choices for TADRED, and options to save the results.
+We provide a more comprehensive tutorial [in tutorial.py](./examples/tutorial.py).  This provides an example of generating simple data, loading the data into TADRED, and various hyperparameter choices for TADRED with options to save the results.
 
