@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 # Dummy example base class for simulation experiments
 class ExperimentsBase:
     def __init__(self):
-        self.set_acquisition_scheme_dense()
+        self.set_acquisition_scheme_super()
         self.set_acquisition_scheme_classical()
         self.performance = dict()
         self.predictions_all = dict(baseline=dict(), tadred=dict(), target=dict())
@@ -24,50 +24,20 @@ class ExperimentsBase:
     def create_parameters(self, num_samples: int):
         raise NotImplementedError
 
-    def set_acquisition_scheme_dense(self):
+    def set_acquisition_scheme_super(self):
         raise NotImplementedError
 
     def set_acquisition_scheme_classical(self):
         raise NotImplementedError
 
-    def create_data_dense(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+    def create_data_super(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError
 
     def create_data_classical(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError
 
-    def classical_fitting_and_prediction(self, data_test: np.ndarray) -> np.ndarray:
+    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
         raise NotImplementedError
-
-    def compute_performance_and_cache(
-        self,
-        metrics: tuple[str],
-        SNR: float,
-        prediction_tadred: np.ndarray,
-        prediction_baseline: np.ndarray,
-        target: np.ndarray,
-    ):
-
-        self.performance[SNR] = dict()
-        for metric in metrics:
-            if metric == "MSE":
-                tadred_mse = np.mean((prediction_tadred - target) ** 2)
-                baseline_mse = np.mean((prediction_baseline - target) ** 2)
-                self.performance[SNR][metric] = dict(tadred=tadred_mse, baseline=baseline_mse)
-
-    def cache_for_plot(
-        self,
-        SNR: float,
-        prediction_tadred: np.ndarray,
-        prediction_baseline: np.ndarray,
-        target: np.ndarray,
-    ):
-        self.predictions_all["baseline"][SNR] = prediction_baseline
-        self.predictions_all["tadred"][SNR] = prediction_tadred
-        self.predictions_all["target"][SNR] = target
-
-    def plots(self):
-        plot_all(self.predictions_all)
 
 
 def add_noise(data, noise_scale: float) -> np.ndarray:
@@ -83,38 +53,67 @@ def add_noise(data, noise_scale: float) -> np.ndarray:
     return data_noisy
 
 
-def plot_all(
-    predictions_all: dict[str, dict[float, np.ndarray]],
-    SNR_all: tuple[float],
-):
+def plot_predicted_vs_target_parameters(plot_data: dict[str, dict[str, str | np.ndarray]]):
+    experiment_name = plot_data["experiment_name"]
+    SNR_all = plot_data["SNR_all"]
+
     colors = ("tab:blue", "tab:orange", "tab:green", "tab:red")
-    fits = list(predictions_all.keys())
-    fits.remove("target")
-    target = predictions_all["target"]
-    fig, ax = plt.subplots(len(fits), len(SNR_all), figsize=[6 * len(SNR_all), 5 * len(fits)])
+    plot_lim = plot_data["plot_args"]["lim"]
+
+    num_pred = 3  # len(plot_data[list(SNR_all)[0]]['predictions'])
+    fig, ax = plt.subplots(
+        num_pred, len(SNR_all), figsize=[6 * len(SNR_all), 5 * num_pred], squeeze=False
+    )
+    fig.suptitle(f"{experiment_name}", fontsize=32)
     for SNR_i, SNR in enumerate(SNR_all):
-        for fit_i, fit in enumerate(fits):
-            ax[fit_i, SNR_i].plot(
-                target[SNR], predictions_all[fit][SNR], ".", markersize=1, color=colors[fit_i]
-            )
+        ax[0, SNR_i].set_title(f"SNR = {SNR}", fontsize=26, weight="bold")
+        target = plot_data[SNR]["target"]
+        for pred_i, (pred_name, pred_array) in enumerate(plot_data[SNR]["predictions"].items()):
+            ax[pred_i, SNR_i].plot(target, pred_array, ".", markersize=1, color=colors[pred_i])
 
-            if fit_i == 0:
-                ax[fit_i, SNR_i].set_title(f"SNR = {SNR}", fontsize=32, weight="bold")
-
-            xlim = (0, 1)
-            ylim = (0, 1)  # Different for each experiment
-            ax[fit_i, SNR_i].plot(xlim, ylim, "k", markersize=5)
-            if fit_i == len(fits) - 1:
-                ax[fit_i, SNR_i].set_xlabel(f"GT", fontsize=32)
+            ax[pred_i, SNR_i].plot(plot_lim, plot_lim, "k", markersize=5)
+            if pred_i == num_pred - 1:
+                ax[pred_i, SNR_i].set_xlabel(f"Ground Truth", fontsize=26)
             if SNR_i == 0:
-                ax[fit_i, SNR_i].set_ylabel(
-                    f"{fits[fit_i]} \n PRED",
-                    fontsize=32,
-                    color=colors[fit_i],
+                ax[pred_i, SNR_i].set_ylabel(
+                    f"{pred_name}",
+                    fontsize=26,
+                    color=colors[pred_i],
                 )
 
-            ax[fit_i, SNR_i].set_ylim(ylim)
-            ax[fit_i, SNR_i].set_xlim(xlim)
+            ax[pred_i, SNR_i].set_ylim(plot_lim)
+            ax[pred_i, SNR_i].set_xlim(plot_lim)
+    plt.show()
+
+
+def plot_barplots(plot_data: dict[str, dict[str, str | np.ndarray]]):
+    bar_width = 0.15
+    SNR_all = plot_data["SNR_all"]
+    fig, ax = plt.subplots(2, len(SNR_all), figsize=[6 * len(SNR_all) * 2, 5], squeeze=False)
+    experiment_name = plot_data["experiment_name"]
+    fig.suptitle(f"{experiment_name}", fontsize=32)
+
+    for SNR_i, SNR in enumerate(SNR_all):
+        ax[0, SNR_i].set_title(f"SNR = {SNR}", fontsize=26, weight="bold")
+
+        target = plot_data[SNR]["target"]
+        for pred_i, (pred_name, pred_array) in enumerate(plot_data[SNR]["predictions"].items()):
+            MSE = np.mean((target - pred_array) ** 2)
+            MAE = np.mean(np.abs(target - pred_array))
+
+            ax[0, SNR_i].bar(pred_i * bar_width, MSE, width=bar_width, label=pred_name)
+            ax[1, SNR_i].bar(pred_i * bar_width, MAE, width=bar_width, label=pred_name)
+
+        ax[0, SNR_i].set_ylabel("Mean Squared Error")
+        ax[1, SNR_i].set_ylabel("Mean Absolute Error")
+        ax[0, SNR_i].set_yscale("log")
+        ax[1, SNR_i].set_yscale("log")
+        ax[0, SNR_i].xaxis.set_visible(False)
+        ax[1, SNR_i].xaxis.set_visible(False)
+        ax[0, SNR_i].legend()
+        ax[1, SNR_i].legend()
+
+    plt.show()
 
 
 # Helper function for NODDI and VERDICT simulations
@@ -149,7 +148,7 @@ def add_cartesian(model_dmipy, parameters_dmipy: np.ndarray) -> np.ndarray:
 
 class NODDI:
     def __init__(self):
-        self.set_acquisition_scheme_dense()
+        self.set_acquisition_scheme_super()
         self.set_acquisition_scheme_classical()
         self.create_model()
 
@@ -191,11 +190,11 @@ class NODDI:
         )
         self.parameters = self.model.parameters_to_parameter_vector(**parameters_dict)
 
-    def set_acquisition_scheme_dense(self):
-        self.acquisition_scheme_dense = (
+    def set_acquisition_scheme_super(self):
+        self.acquisition_scheme_super = (
             saved_acquisition_schemes.isbi2015_white_matter_challenge_scheme()
         )
-        self.Cbar = self.acquisition_scheme_dense.number_of_measurements
+        self.Cbar = self.acquisition_scheme_super.number_of_measurements
 
     def set_acquisition_scheme_classical(self):
         scheme_dict = dict(
@@ -230,8 +229,7 @@ class NODDI:
         scheme_dict["TE"] /= 1000
         scheme_dict["bvalues"] *= 10**6
 
-        scheme = acquisition_scheme_from_bvalues(**scheme_dict)
-        self.acquisition_scheme_classical = scheme
+        self.acquisition_scheme_classical = acquisition_scheme_from_bvalues(**scheme_dict)
 
     def process_data(self, signals, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
         signals = add_noise(signals, noise_scale)
@@ -241,24 +239,30 @@ class NODDI:
 
         return signals, parameters_cartesian
 
-    def create_data_dense(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
-        signals = self.model.simulate_signal(self.acquisition_scheme_dense, self.parameters)
+    def create_data_super(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+        signals = self.model.simulate_signal(self.acquisition_scheme_super, self.parameters)
         return self.process_data(signals, noise_scale)
 
     def create_data_classical(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
         signals = self.model.simulate_signal(self.acquisition_scheme_classical, self.parameters)
         return self.process_data(signals, noise_scale)
 
-    def classical_fitting_and_prediction(self, data_test: np.ndarray) -> np.ndarray:
+    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
         model = copy.deepcopy(self.model)
-        model_fit = model.fit(acquisition_scheme=self.acquisition_scheme_classical, data=data_test)
+        if scheme_name == "classical":
+            acquisition_scheme = self.acquisition_scheme_classical
+        elif scheme_name == "super":
+            acquisition_scheme = self.acquisition_scheme_super
+        else:
+            raise ValueError("Pick scheme_name to be classical | super")
+        model_fit = model.fit(acquisition_scheme=acquisition_scheme, data=data_test)
         parameters_cartesian_pred = add_cartesian(self.model, model_fit.fitted_parameters_vector)
         return parameters_cartesian_pred
 
 
 class VERDICT:
     def __init__(self):
-        self.set_acquisition_scheme_dense()
+        self.set_acquisition_scheme_super()
         self.set_acquisition_scheme_classical()
         self.create_model()
 
@@ -323,11 +327,11 @@ class VERDICT:
         scheme_dict["bvalues"] *= 10**6
         self.acquisition_scheme_classical = acquisition_scheme_from_bvalues(**scheme_dict)
 
-    def set_acquisition_scheme_dense(self):
-        self.acquisition_scheme_dense = (
+    def set_acquisition_scheme_super(self):
+        self.acquisition_scheme_super = (
             saved_acquisition_schemes.panagiotaki_verdict_acquisition_scheme()
         )
-        self.Cbar = self.acquisition_scheme_dense.number_of_measurements
+        self.Cbar = self.acquisition_scheme_super.number_of_measurements
 
     def verdict_params_norm(Parameters_VERDICT: np.ndarray) -> np.ndarray:
         """Normalize parameters to be approximately equal so evaluation will penalize incorrect prediction roughly same"""
@@ -345,24 +349,30 @@ class VERDICT:
         parameters_cartesian = parameters_cartesian.astype(np.float32)
         return signals, parameters_cartesian
 
-    def create_data_dense(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
-        signals = self.model.simulate_signal(self.acquisition_scheme_dense, self.parameters)
+    def create_data_super(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+        signals = self.model.simulate_signal(self.acquisition_scheme_super, self.parameters)
         return self.process_data(signals, noise_scale)
 
     def create_data_classical(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
         signals = self.model.simulate_signal(self.acquisition_scheme_classical, self.parameters)
         return self.process_data(signals, noise_scale)
 
-    def classical_fitting_and_prediction(self, data_test: np.ndarray) -> np.ndarray:
+    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
         model = copy.deepcopy(self.model)
-        model_fit = model.fit(acquisition_scheme=self.acquisition_scheme_classical, data=data_test)
+        if scheme_name == "classical":
+            acquisition_scheme = self.acquisition_scheme_classical
+        elif scheme_name == "super":
+            acquisition_scheme = self.acquisition_scheme_super
+        else:
+            raise ValueError("Pick scheme_name to be classical | super")
+        model_fit = model.fit(acquisition_scheme=acquisition_scheme, data=data_test)
         parameters_cartesian_pred = add_cartesian(self.model, model_fit.fitted_parameters_vector)
         return parameters_cartesian_pred
 
 
 class ADC:
     def __init__(self):
-        self.set_acquisition_scheme_dense()
+        self.set_acquisition_scheme_super()
         self.set_acquisition_scheme_classical()
         self.create_model()
 
@@ -378,7 +388,7 @@ class ADC:
         maxD = 3
         self.parameters = np.random.uniform(low=minD, high=maxD, size=(num_samples, 1))
 
-    def set_acquisition_scheme_dense(self):
+    def set_acquisition_scheme_super(self):
         def f_crlb(b, params, sigma):
             # params[0] is S0
             # params[1] is ADC
@@ -403,8 +413,8 @@ class ADC:
         # TODO check
         minb, maxb = 0, 5
         nb = 192
-        self.acquisition_scheme_dense = np.linspace(minb, maxb, nb)
-        self.Cbar = len(self.acquisition_scheme_dense)
+        self.acquisition_scheme_super = np.linspace(minb, maxb, nb)
+        self.Cbar = len(self.acquisition_scheme_super)
 
     def set_acquisition_scheme_classical(self):
         # TODO think this needs to be loaded?
@@ -413,8 +423,8 @@ class ADC:
         nb = 5
         self.acquisition_scheme_classical = np.linspace(minb, maxb, nb)
 
-    def create_data_dense(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
-        signals = self.model(self.parameters, self.acquisition_scheme_dense)
+    def create_data_super(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+        signals = self.model(self.parameters, self.acquisition_scheme_super)
         signals = add_noise(signals, noise_scale)
         return signals, self.parameters
 
@@ -423,8 +433,15 @@ class ADC:
         signals = add_noise(signals, noise_scale)
         return signals, self.parameters
 
-    def classical_fitting_and_prediction(self, data_test: np.ndarray) -> np.ndarray:
+    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
         from scipy.optimize import minimize
+
+        if scheme_name == "classical":
+            acquisition_scheme = self.acquisition_scheme_classical
+        elif scheme_name == "super":
+            acquisition_scheme = self.acquisition_scheme_super
+        else:
+            raise ValueError("Pick scheme_name to be classical | super")
 
         def objective_function(D, bvals, signals):
             return np.mean((signals - self.model(D, bvals)) ** 2)
@@ -437,16 +454,19 @@ class ADC:
             out = minimize(
                 objective_function,
                 Dstart,
-                args=(self.acquisition_scheme_classical, data_test[i, :]),
+                args=(acquisition_scheme, data_test[i, :]),
                 method="Nelder-Mead",
             )
-            out_all.append(out.x.item())  # assumes single point solution
+            out_all.append([out.x.item()])  # assumes single point solution
         return np.array(out_all)
+
+    def plot_args(self):
+        return dict(lim=(0, 3.5))
 
 
 class T1INV:
     def __init__(self):
-        self.set_acquisition_scheme_dense()
+        self.set_acquisition_scheme_super()
         self.set_acquisition_scheme_classical()
         self.create_model()
 
@@ -462,11 +482,11 @@ class T1INV:
         minT1, maxT1 = 0.1, 7
         self.parameters = np.random.uniform(low=minT1, high=maxT1, size=(num_samples, 1))
 
-    def set_acquisition_scheme_dense(self):
+    def set_acquisition_scheme_super(self):
         # TODO check
         minTi, maxTi = 0.1, 7
         self.Cbar = 192
-        self.acquisition_scheme_dense = np.linspace(minTi, maxTi, self.Cbar)
+        self.acquisition_scheme_super = np.linspace(minTi, maxTi, self.Cbar)
 
     def set_acquisition_scheme_classical(self):
         def f_crlb(ti, params, tr, sigma):
@@ -479,7 +499,9 @@ class T1INV:
 
             dy = np.zeros((len(ti), 2))
             dy[:, 0] = 1 - 2 * np.exp(-ti * params[1]) + np.exp(-tr * params[1])
-            dy[:, 1] = params[0] * (2 * ti * np.exp(-ti * params[1]) - tr * np.exp(-tr * params[1]))
+            dy[:, 1] = params[0] * (
+                2 * ti * np.exp(-ti * params[1]) - tr * np.exp(-tr * params[1])
+            )
 
             fisher = (np.matmul(dy.T, dy)) / sigma**2
 
@@ -489,8 +511,8 @@ class T1INV:
 
             return f
 
-    def create_data_dense(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
-        signals = self.model(self.parameters, self.acquisition_scheme_dense)
+    def create_data_super(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+        signals = self.model(self.parameters, self.acquisition_scheme_super)
         signals = add_noise(signals, noise_scale)
         return signals, self.parameters
 
@@ -499,7 +521,7 @@ class T1INV:
         signals = add_noise(signals, noise_scale)
         return signals, self.parameters
 
-    def classical_fitting_and_prediction(self, data_test: np.ndarray) -> np.ndarray:
+    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
         # TODO sortout
         from scipy.optimize import minimize
 
@@ -526,3 +548,6 @@ class T1INV:
             args=(acq_params_crlb, tr, signals_crlb[i, :], sigma_test),
             method="Nelder-Mead",
         ).x
+
+    def plot_args(self):
+        return dict(lim=(0, 7.5))
