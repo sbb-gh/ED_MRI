@@ -6,18 +6,18 @@ from tadred import tadred_main, utils
 
 
 experiments = dict(
-    # NODDI=models_simulations_fitting.NODDI(),
-    # VERDICt=models_simulations_fitting.VERDICT(),
-    ADC=models_simulations_fitting.ADC(),
-    # t1inv=models_simulations_fitting.T1INV,
+    # NODDI_model=models_simulations_fitting.NODDI,
+    # VERDICT_model=models_simulations_fitting.VERDICT,
+    ADC_model=models_simulations_fitting.ADC,
+    # T1inv_model=models_simulations_fitting.T1INV,
 )
 
 num_samples: dict[str, int] = dict(
-    train=10**2,
-    val=10**1,
-    test=10**1,
+    train=10**5,
+    val=10**4,
+    test=10**4,
 )
-SNR_all = (10, 30, 50)
+SNR_all = (10, 20, 30)
 
 # Neural network hyperparameters of the method TADRED
 tadred_args = utils.load_base_args()
@@ -26,36 +26,35 @@ tadred_args.network.num_units_task = [1000, 1000]
 tadred_args.other_options.save_output = True
 
 
-for experiment_name, experiment in experiments.items():
-    plot_data = dict(
-        experiment_name=experiment_name, SNR_all=SNR_all, plot_args=experiment.plot_args()
-    )
+for experiment_name, experiment_cls in experiments.items():
+    results_plot = dict(experiment_name=experiment_name, SNR_all=SNR_all)
+
     for SNR in SNR_all:
-        data_TADRED: dict = dict()
+        experiment = experiment_cls(SNR)
+        data: dict = dict()
+
         for split in ("train", "val", "test"):
             experiment.create_parameters(num_samples[split])
-            data_TADRED_split, parameters_target = experiment.create_data_super(
-                noise_scale=1 / SNR
-            )
-            data_TADRED[split] = data_TADRED_split
-            data_TADRED[split + "_tar"] = parameters_target
+            data_split, parameters_target = experiment.create_data_super()
+            data[split] = data_split
+            data[split + "_tar"] = parameters_target
 
             if split == "test":
-                data_classical_test, _ = experiment.create_data_classical(noise_scale=1 / SNR)
+                data_classical_test, _ = experiment.create_data_classical()
 
-        eval_C = [experiment.Cbar // 16]
-        tadred_args.tadred_train_eval.feature_set_sizes_Ci = [experiment.Cbar] + eval_C
-        tadred_args.tadred_train_eval.feature_set_sizes_evaluated = eval_C
+        tadred_args.tadred_train_eval.feature_set_sizes_Ci = [experiment.Cbar, experiment.Ceval]
+        tadred_args.tadred_train_eval.feature_set_sizes_evaluated = [experiment.Ceval]
 
         predictions = dict(
             CRLB=experiment.fit_and_prediction(data_classical_test, "classical"),
-            superdesign=experiment.fit_and_prediction(data_TADRED["test"], "super"),
-            TADRED=tadred_main.run(tadred_args, data_TADRED)[eval_C[-1]]["test_output"],
+            superdesign=experiment.fit_and_prediction(data["test"], "super"),
+            TADRED=tadred_main.run(tadred_args, data)[experiment.Ceval]["test_output"],
         )
 
-        plot_data[SNR] = dict(target=parameters_target, predictions=predictions)
+        results_plot[SNR] = dict(target=parameters_target, predictions=predictions)
 
-    models_simulations_fitting.plot_predicted_vs_target_parameters(plot_data)
-    models_simulations_fitting.plot_barplots(plot_data)
+    results_plot["plot_args"] = experiment.plot_args()
+    models_simulations_fitting.plot_predicted_vs_target_parameters(results_plot)
+    models_simulations_fitting.plot_barplots(results_plot)
 
     print("EOF")

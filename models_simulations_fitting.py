@@ -53,22 +53,24 @@ def add_noise(data, noise_scale: float) -> np.ndarray:
     return data_noisy
 
 
-def plot_predicted_vs_target_parameters(plot_data: dict[str, dict[str, str | np.ndarray]]):
-    experiment_name = plot_data["experiment_name"]
-    SNR_all = plot_data["SNR_all"]
+colors = ("tab:blue", "tab:orange", "tab:green", "tab:red")
 
-    colors = ("tab:blue", "tab:orange", "tab:green", "tab:red")
-    plot_lim = plot_data["plot_args"]["lim"]
 
-    num_pred = 3  # len(plot_data[list(SNR_all)[0]]['predictions'])
+def plot_predicted_vs_target_parameters(results_plot: dict[str, dict[str, str | np.ndarray]]):
+    experiment_name = results_plot["experiment_name"].replace('_', ' ')
+    SNR_all = results_plot["SNR_all"]
+
+    plot_lim = results_plot["plot_args"]["lim"]
+
+    num_pred = 3  # len(results_plot[list(SNR_all)[0]]['predictions'])
     fig, ax = plt.subplots(
         num_pred, len(SNR_all), figsize=[6 * len(SNR_all), 5 * num_pred], squeeze=False
     )
     fig.suptitle(f"{experiment_name}", fontsize=32)
     for SNR_i, SNR in enumerate(SNR_all):
         ax[0, SNR_i].set_title(f"SNR = {SNR}", fontsize=26, weight="bold")
-        target = plot_data[SNR]["target"]
-        for pred_i, (pred_name, pred_array) in enumerate(plot_data[SNR]["predictions"].items()):
+        target = results_plot[SNR]["target"]
+        for pred_i, (pred_name, pred_array) in enumerate(results_plot[SNR]["predictions"].items()):
             ax[pred_i, SNR_i].plot(target, pred_array, ".", markersize=1, color=colors[pred_i])
 
             ax[pred_i, SNR_i].plot(plot_lim, plot_lim, "k", markersize=5)
@@ -86,32 +88,31 @@ def plot_predicted_vs_target_parameters(plot_data: dict[str, dict[str, str | np.
     plt.show()
 
 
-def plot_barplots(plot_data: dict[str, dict[str, str | np.ndarray]]):
-    bar_width = 0.15
-    SNR_all = plot_data["SNR_all"]
-    fig, ax = plt.subplots(2, len(SNR_all), figsize=[6 * len(SNR_all) * 2, 5], squeeze=False)
-    experiment_name = plot_data["experiment_name"]
-    fig.suptitle(f"{experiment_name}", fontsize=32)
+def plot_barplots(results_plot: dict[str, dict[str, str | np.ndarray]]):
+    num_metrics = 2
+    bar_width = 0.25
+    SNR_all = results_plot["SNR_all"]
+    fig, ax = plt.subplots(1, num_metrics, figsize=[6 * len(SNR_all) * 2, 5], squeeze=False)
+    fig.suptitle(f"{results_plot['experiment_name']}", fontsize=32)
 
     for SNR_i, SNR in enumerate(SNR_all):
-        ax[0, SNR_i].set_title(f"SNR = {SNR}", fontsize=26, weight="bold")
-
-        target = plot_data[SNR]["target"]
-        for pred_i, (pred_name, pred_array) in enumerate(plot_data[SNR]["predictions"].items()):
+        target = results_plot[SNR]["target"]
+        for pred_i, (pred_name, pred_array) in enumerate(results_plot[SNR]["predictions"].items()):
             MSE = np.mean((target - pred_array) ** 2)
             MAE = np.mean(np.abs(target - pred_array))
 
-            ax[0, SNR_i].bar(pred_i * bar_width, MSE, width=bar_width, label=pred_name)
-            ax[1, SNR_i].bar(pred_i * bar_width, MAE, width=bar_width, label=pred_name)
+            bar_x_pos = pred_i * bar_width + SNR_i
+            ax_args = dict(label=pred_name) if SNR_i == 0 else {}
+            ax[0, 0].bar(bar_x_pos, MSE, width=bar_width, color=colors[pred_i], **ax_args)
+            ax[0, 1].bar(bar_x_pos, MAE, width=bar_width, color=colors[pred_i], **ax_args)
 
-        ax[0, SNR_i].set_ylabel("Mean Squared Error")
-        ax[1, SNR_i].set_ylabel("Mean Absolute Error")
-        ax[0, SNR_i].set_yscale("log")
-        ax[1, SNR_i].set_yscale("log")
-        ax[0, SNR_i].xaxis.set_visible(False)
-        ax[1, SNR_i].xaxis.set_visible(False)
-        ax[0, SNR_i].legend()
-        ax[1, SNR_i].legend()
+    ax[0, 0].set_ylabel("Mean Squared Error")
+    ax[0, 1].set_ylabel("Mean Absolute Error")
+    for metric_i in range(num_metrics):
+        ax[0, metric_i].set_xticks([SNR_i + 1 * bar_width for SNR_i, SNR in enumerate(SNR_all)])
+        ax[0, metric_i].set_xticklabels([f"SNR = {SNR}" for SNR in SNR_all])
+        ax[0, metric_i].set_yscale("log")
+        ax[0, metric_i].legend()
 
     plt.show()
 
@@ -239,11 +240,13 @@ class NODDI:
 
         return signals, parameters_cartesian
 
-    def create_data_super(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+    def create_data_super(self) -> tuple[np.ndarray, np.ndarray]:
+        noise_scale = 1 / self.SNR
         signals = self.model.simulate_signal(self.acquisition_scheme_super, self.parameters)
         return self.process_data(signals, noise_scale)
 
-    def create_data_classical(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+    def create_data_classical(self) -> tuple[np.ndarray, np.ndarray]:
+        noise_scale = 1 / self.SNR
         signals = self.model.simulate_signal(self.acquisition_scheme_classical, self.parameters)
         return self.process_data(signals, noise_scale)
 
@@ -371,7 +374,12 @@ class VERDICT:
 
 
 class ADC:
-    def __init__(self):
+    def __init__(self, SNR: int):
+        self.SNR = SNR
+        self.minb = 0
+        self.maxb = 5
+        self.maxD = 3
+
         self.set_acquisition_scheme_super()
         self.set_acquisition_scheme_classical()
         self.create_model()
@@ -385,10 +393,18 @@ class ADC:
 
     def create_parameters(self, num_samples: int):
         minD = 0.1
-        maxD = 3
-        self.parameters = np.random.uniform(low=minD, high=maxD, size=(num_samples, 1))
+        self.parameters = np.random.uniform(low=minD, high=self.maxD, size=(num_samples, 1))
 
     def set_acquisition_scheme_super(self):
+        # TODO check
+        self.Cbar = 192
+        self.acquisition_scheme_super = np.linspace(self.minb, self.maxb, self.Cbar)
+
+    def set_acquisition_scheme_classical(self):
+        from scipy.optimize import minimize
+
+        self.Ceval = self.Cbar // 16
+
         def f_crlb(b, params, sigma):
             # params[0] is S0
             # params[1] is ADC
@@ -410,27 +426,34 @@ class ADC:
             f = invfisher[1, 1]
             return f
 
-        # TODO check
-        minb, maxb = 0, 5
-        nb = 192
-        self.acquisition_scheme_super = np.linspace(minb, maxb, nb)
-        self.Cbar = len(self.acquisition_scheme_super)
+        # calculate CRLB optimal acquisition parameter (e.g. b-value, TI) for a range of model parameters (e.g. ADC, T1)
+        # match number of model parameters in the range to the number of measurements in the final TADRED output
 
-    def set_acquisition_scheme_classical(self):
-        # TODO think this needs to be loaded?
-        # np.loadtxt(os.path.join(basedir, "crlb_code/crlb_adc_optimised_protocol.txt"))
-        minb, maxb = 0, 5
-        nb = 5
-        self.acquisition_scheme_classical = np.linspace(minb, maxb, nb)
+        # one less parameter for ADC as CRLB assumes a b=0
+        params_init = np.linspace(0, self.maxD, self.Ceval)[1:]
+        acq_params_crlb = []
 
-    def create_data_super(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+        # Don't affect the optimisation so can be fixed
+        S0 = 1
+        sigma = 1 / self.SNR
+
+        for i, param_init in enumerate(params_init):
+            fixed_args = (np.array((S0, param_init)), sigma)  # (2,) float
+            bnds = ((self.minb, self.maxb),)  # acq_params_crlb
+            init = 1 / param_init  # int
+            opt = minimize(f_crlb, init, args=fixed_args, method="Nelder-Mead", bounds=bnds).x
+            acq_params_crlb.append(opt[0])
+        acq_params_crlb.append(0)
+        self.acquisition_scheme_classical = np.array(acq_params_crlb)
+
+    def create_data_super(self) -> tuple[np.ndarray, np.ndarray]:
         signals = self.model(self.parameters, self.acquisition_scheme_super)
-        signals = add_noise(signals, noise_scale)
+        signals = add_noise(signals, noise_scale=1 / self.SNR)
         return signals, self.parameters
 
-    def create_data_classical(self, noise_scale: float) -> tuple[np.ndarray, np.ndarray]:
+    def create_data_classical(self) -> tuple[np.ndarray, np.ndarray]:
         signals = self.model(self.parameters, self.acquisition_scheme_classical)
-        signals = add_noise(signals, noise_scale)
+        signals = add_noise(signals, noise_scale=1 / self.SNR)
         return signals, self.parameters
 
     def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
@@ -446,22 +469,49 @@ class ADC:
         def objective_function(D, bvals, signals):
             return np.mean((signals - self.model(D, bvals)) ** 2)
 
+        def log_i0(x):
+            exact = x < 700
+            approx = x >= 700
+
+            lb0 = np.zeros(np.shape(x))
+            lb0[exact] = np.log(np.i0(x[exact]))
+            # This is a more standard approximation.  For large x, I_0(x) -> exp(x)/sqrt(2 pi x).
+            lb0[approx] = x[approx] - np.log(2 * np.pi * x[approx]) / 2
+
+            return lb0
+
+        def rician_log_likelihood(signals, synth_signals, sigma):
+            sumsqsc = (signals**2 + synth_signals**2) / (2 * sigma**2)
+            #    print("sumsqsc: " + str(sumsqsc))
+            scp = synth_signals * signals / sigma**2
+            #    print("scp: " + str(scp))
+            #    lb0 = np.log(np.i0(scp))
+            lb0 = log_i0(scp)
+            #    print("lb0: " + str(lb0))
+            log_likelihoods = -2 * np.log(sigma) - sumsqsc + np.log(synth_signals) + lb0
+            #    print("log_likelihoods: " + str(log_likelihoods))
+
+            return np.sum(log_likelihoods)
+
+        def rician_objective_function(D, bvals, signals, sigma):
+            return -rician_log_likelihood(self.model(D, bvals), signals, sigma)
+
         num_test, num_measurements = data_test.shape
         Dstart = 1
         # TODO check
         out_all = []
         for i in range(num_test):
             out = minimize(
-                objective_function,
+                rician_objective_function,
                 Dstart,
-                args=(acquisition_scheme, data_test[i, :]),
+                args=(acquisition_scheme, data_test[i, :], 1 / self.SNR),
                 method="Nelder-Mead",
             )
             out_all.append([out.x.item()])  # assumes single point solution
         return np.array(out_all)
 
     def plot_args(self):
-        return dict(lim=(0, 3.5))
+        return dict(lim=(0, 3.1))
 
 
 class T1INV:
