@@ -1,9 +1,10 @@
 import copy
 import logging
-from scipy.optimize import minimize
+from pathlib import Path
+
 import numpy as np
 from matplotlib import pyplot as plt
-from pathlib import Path
+from scipy.optimize import minimize
 
 from dmipy.core import modeling_framework  # type: ignore
 from dmipy.core.acquisition_scheme import acquisition_scheme_from_bvalues  # type: ignore
@@ -12,14 +13,14 @@ from dmipy.distributions import distribute_models  # type: ignore
 from dmipy.signal_models import cylinder_models, gaussian_models, sphere_models  # type: ignore
 from dmipy.utils import utils  # type: ignore
 
-
 colors = ("tab:blue", "tab:orange", "tab:green", "tab:red")
 
-def plot_predicted_vs_target_parameters(results_plot: dict[str, dict[str, str | np.ndarray]]):
+
+def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.ndarray]]):
     title_name = results_plot["experiment_name"].replace("_", " ").capitalize()
     SNR_all = results_plot["SNR_all"]
-    #plot_lim = results_plot["plot_args"]["lim"]
-    save_figs_dir=results_plot['save_figs_dir']
+    # plot_lim = results_plot["plot_args"]["lim"]
+    save_figs_dir = results_plot["save_figs_dir"]
 
     for SNR_i, SNR in enumerate(SNR_all):
         target = results_plot[SNR]["target"]
@@ -28,7 +29,9 @@ def plot_predicted_vs_target_parameters(results_plot: dict[str, dict[str, str | 
         fig, ax = plt.subplots(
             num_pred, num_param, figsize=[3 * num_param, 3 * num_pred], squeeze=False
         )
-        fig.suptitle(f"{title_name} SNR {SNR}", fontsize=26) # Predicted vs Ground Truth Parameters \n
+        fig.suptitle(
+            f"{title_name} SNR {SNR}", fontsize=26
+        )  # Predicted vs Ground Truth Parameters \n
         for param_i in range(num_param):
             ax[0, param_i].set_title(f"Parameter {param_i}", fontsize=12)
             for pred_i, (pred_name, pred_array) in enumerate(
@@ -49,16 +52,22 @@ def plot_predicted_vs_target_parameters(results_plot: dict[str, dict[str, str | 
                     ax[pred_i, 0].set_ylabel(f"{pred_name}", fontsize=19, color=colors[pred_i])
             ax[num_pred - 1, param_i].set_xlabel(f"Ground Truth", fontsize=12)
 
-        fig.savefig(Path(save_figs_dir, f'{results_plot["experiment_name"]}_SNR{SNR}_predicted_vs_groundtruth_params'), bbox_inches = 'tight')
+        fig.savefig(
+            Path(
+                save_figs_dir,
+                f'{results_plot["experiment_name"]}_SNR{SNR}_predicted_vs_groundtruth_params',
+            ),
+            bbox_inches="tight",
+        )
 
 
 def plot_barplots(results_plot: dict[str, dict[str, str | np.ndarray]]):
     SNR_all = results_plot["SNR_all"]
     title_name = results_plot["experiment_name"].replace("_", " ").capitalize()
-    save_figs_dir = results_plot['save_figs_dir']
+    save_figs_dir = results_plot["save_figs_dir"]
     num_metrics = 2
     bar_width = 0.25
-    fig, ax = plt.subplots(1, num_metrics, figsize=[4*len(SNR_all), 6], squeeze=False)
+    fig, ax = plt.subplots(1, num_metrics, figsize=[4 * len(SNR_all), 6], squeeze=False)
     fig.suptitle(f"{title_name}", fontsize=32)
 
     for SNR_i, SNR in enumerate(SNR_all):
@@ -86,7 +95,7 @@ def plot_barplots(results_plot: dict[str, dict[str, str | np.ndarray]]):
 class SimulationsFitting:
     def __init__(self, SNR: float):
         self.SNR = SNR
-        self.set_acquisition_scheme_super()
+        self.set_acquisition_scheme_dense()
         self.set_acquisition_scheme_classical()
         self.create_model()
 
@@ -94,25 +103,25 @@ class SimulationsFitting:
         # Define self.model, self.model_forward
         pass
 
-    def create_parameters(self, num_samples: int) -> None:
-        self.parameters_for_model: np.ndarray
-        self.parameters_target: np.ndarray
+    def create_params(self, num_samples: int) -> None:
+        self.params_for_model: np.ndarray
+        self.params_target: np.ndarray
 
-    def set_acquisition_scheme_super(self) -> None:
-        self.acquisition_scheme_super: any
+    def set_acquisition_scheme_dense(self) -> None:
+        self.acquisition_scheme_dense: any
         self.Cbar: int
 
     def set_acquisition_scheme_classical(self) -> None:
         self.acquisition_scheme_classical: any
         self.Ceval: int
 
-    def create_data_super(self) -> np.ndarray:
-        signals = self.model_forward(self.acquisition_scheme_super, self.parameters_for_model)
+    def create_data_dense(self) -> np.ndarray:
+        signals = self.model_forward(self.acquisition_scheme_dense, self.params_for_model)
         signals = self.add_noise(signals, noise_scale=1 / self.SNR).astype(np.float32)
         return signals
 
     def create_data_classical(self) -> np.ndarray:
-        signals = self.model_forward(self.acquisition_scheme_classical, self.parameters_for_model)
+        signals = self.model_forward(self.acquisition_scheme_classical, self.params_for_model)
         signals = self.add_noise(signals, noise_scale=1 / self.SNR).astype(np.float32)
         return signals
 
@@ -138,7 +147,7 @@ class ADC(SimulationsFitting):
         self.maxb = 5
         self.minD = 0.1
         self.maxD = 3
-        super().__init__(SNR=SNR)
+        dense().__init__(SNR=SNR)
 
     def create_model(self):
         def adc_model(bval, D):
@@ -147,15 +156,15 @@ class ADC(SimulationsFitting):
         self.model = adc_model
         self.model_forward = adc_model
 
-    def create_parameters(self, num_samples: int):
-        self.parameters_for_model = np.random.uniform(
+    def create_params(self, num_samples: int):
+        self.params_for_model = np.random.uniform(
             low=self.minD, high=self.maxD, size=(num_samples, 1)
         ).astype(np.float32)
-        self.parameters_target = self.parameters_for_model
+        self.params_target = self.params_for_model
 
-    def set_acquisition_scheme_super(self) -> None:
+    def set_acquisition_scheme_dense(self) -> None:
         self.Cbar = 192
-        self.acquisition_scheme_super = np.linspace(self.minb, self.maxb, self.Cbar)
+        self.acquisition_scheme_dense = np.linspace(self.minb, self.maxb, self.Cbar)
 
     def set_acquisition_scheme_classical(self) -> None:
         self.Ceval = self.Cbar // 16
@@ -204,10 +213,10 @@ class ADC(SimulationsFitting):
     def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
         if scheme_name == "classical":
             acquisition_scheme = self.acquisition_scheme_classical
-        elif scheme_name == "super":
-            acquisition_scheme = self.acquisition_scheme_super
+        elif scheme_name == "dense":
+            acquisition_scheme = self.acquisition_scheme_dense
         else:
-            raise ValueError("Pick scheme_name to be classical | super")
+            raise ValueError("Pick scheme_name to be classical | dense")
 
         def objective_function(D, bvals, signals):
             return np.mean((signals - self.model(bvals, D)) ** 2)
@@ -264,15 +273,15 @@ class T1INV(SimulationsFitting):
 
         self.model = t1_model
 
-    def create_parameters(self, num_samples: int):
+    def create_params(self, num_samples: int):
         minT1, maxT1 = 0.1, 7
-        self.parameters = np.random.uniform(low=minT1, high=maxT1, size=(num_samples, 1))
+        self.params = np.random.uniform(low=minT1, high=maxT1, size=(num_samples, 1))
 
-    def set_acquisition_scheme_super(self) -> None:
+    def set_acquisition_scheme_dense(self) -> None:
         # TODO check
         minTi, maxTi = 0.1, 7
         self.Cbar = 192
-        self.acquisition_scheme_super = np.linspace(minTi, maxTi, self.Cbar)
+        self.acquisition_scheme_dense = np.linspace(minTi, maxTi, self.Cbar)
 
     def set_acquisition_scheme_classical(self) -> None:
         def f_crlb(ti, params, tr, sigma):
@@ -312,7 +321,7 @@ class T1INV(SimulationsFitting):
             out_all.append(out.x.item())  # assumes single point solution
         return np.array(out_all)
 
-        fitted_parameters_crlb[i] = minimize(
+        fitted_params_crlb[i] = minimize(
             rician_objective_function,
             paramstart,
             args=(acq_params_crlb, tr, signals_crlb[i, :], sigma_test),
@@ -327,7 +336,7 @@ class DMIPYModels(SimulationsFitting):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def add_cartesian(self, model_dmipy, parameters_dmipy: np.ndarray) -> np.ndarray:
+    def add_cartesian(self, model_dmipy, params_dmipy: np.ndarray) -> np.ndarray:
         """Create parameters including spherical and Cartesian, parameters replacing spherical with Cartesian."""
 
         # mu_{name} is the name of the spherical coordinates to convert
@@ -337,7 +346,7 @@ class DMIPYModels(SimulationsFitting):
         theta_phi_index = mu_index, mu_index + 1
 
         # Convert to cartesian coordinates
-        mu_cartesian = utils.unitsphere2cart_Nd(parameters_dmipy[:, theta_phi_index])
+        mu_cartesian = utils.unitsphere2cart_Nd(params_dmipy[:, theta_phi_index])
 
         # Flip the direction of any cartesian points in the lower half of the sphere
         lower_index = mu_cartesian[:, 2] < 0
@@ -345,32 +354,30 @@ class DMIPYModels(SimulationsFitting):
         mu_cartesian[lower_index, :] = -mu_cartesian[lower_index, :]
 
         # Add cartesian coordinates to the parameter array
-        parameters_spherical_and_cartesian = np.append(parameters_dmipy, mu_cartesian, axis=1)
+        params_spherical_and_cartesian = np.append(params_dmipy, mu_cartesian, axis=1)
 
         # Remove spherical coordinates ("mu") from the parameter
-        parameters_cartesian_only = np.delete(
-            parameters_spherical_and_cartesian, theta_phi_index, axis=1
-        )
+        params_cartesian_only = np.delete(params_spherical_and_cartesian, theta_phi_index, axis=1)
 
-        return parameters_cartesian_only.astype(np.float32)
+        return params_cartesian_only.astype(np.float32)
 
     def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
         model = copy.deepcopy(self.model)
         if scheme_name == "classical":
             acquisition_scheme = self.acquisition_scheme_classical
-        elif scheme_name == "super":
-            acquisition_scheme = self.acquisition_scheme_super
+        elif scheme_name == "dense":
+            acquisition_scheme = self.acquisition_scheme_dense
         else:
-            raise ValueError("Pick scheme_name to be classical | super")
+            raise ValueError("Pick scheme_name to be classical | dense")
         model_fit = model.fit(acquisition_scheme=acquisition_scheme, data=data_test)
-        parameters_target_prediction = self.add_cartesian(
+        params_target_prediction = self.add_cartesian(
             self.model, model_fit.fitted_parameters_vector
         )
 
-        parameters_target_prediction = self.model_input_parameters_to_parameters_target(
+        params_target_prediction = self.model_input_params_to_params_target(
             model_fit.fitted_parameters_vector
         )
-        return parameters_target_prediction
+        return params_target_prediction
 
 
 class NODDI(DMIPYModels):
@@ -399,15 +406,13 @@ class NODDI(DMIPYModels):
         self.model.set_fixed_parameter("G1Ball_1_lambda_iso", 3e-9)
         self.model_forward = self.model.simulate_signal
 
-    def model_input_parameters_to_parameters_target(
-        self, parameters_for_model: np.ndarray
-    ) -> np.ndarray:
-        parameters_target = self.add_cartesian(self.model, parameters_for_model)
-        return parameters_target
+    def model_input_params_to_params_target(self, params_for_model: np.ndarray) -> np.ndarray:
+        params_target = self.add_cartesian(self.model, params_for_model)
+        return params_target
 
-    def create_parameters(self, num_samples: int):
+    def create_params(self, num_samples: int):
         self.num_samples = num_samples
-        parameters_dict = dict(
+        params_dict = dict(
             SD1WatsonDistributed_1_SD1Watson_1_mu=np.random.uniform(
                 low=[0, -np.pi], high=[np.pi, np.pi], size=(num_samples, 2)
             ),
@@ -420,19 +425,17 @@ class NODDI(DMIPYModels):
             partial_volume_0=np.random.uniform(low=0.01, high=0.99, size=num_samples),
             partial_volume_1=1 - np.random.uniform(low=0.01, high=0.99, size=num_samples),
         )
-        self.parameters_for_model = self.model.parameters_to_parameter_vector(
-            **parameters_dict
-        ).astype(np.float32)
-
-        self.parameters_target = self.model_input_parameters_to_parameters_target(
-            self.parameters_for_model
+        self.params_for_model = self.model.parameters_to_parameter_vector(**params_dict).astype(
+            np.float32
         )
 
-    def set_acquisition_scheme_super(self) -> None:
-        self.acquisition_scheme_super = (
+        self.params_target = self.model_input_params_to_params_target(self.params_for_model)
+
+    def set_acquisition_scheme_dense(self) -> None:
+        self.acquisition_scheme_dense = (
             saved_acquisition_schemes.isbi2015_white_matter_challenge_scheme()
         )
-        self.Cbar = self.acquisition_scheme_super.number_of_measurements
+        self.Cbar = self.acquisition_scheme_dense.number_of_measurements
 
     def set_acquisition_scheme_classical(self) -> None:
         scheme_dict = dict(
@@ -486,16 +489,14 @@ class VERDICT(DMIPYModels):
         self.model.set_parameter_optimization_bounds("C1Stick_1_lambda_par", [3.05e-9, 10e-9])
         self.model_forward = self.model.simulate_signal
 
-    def model_input_parameters_to_parameters_target(
-        self, parameters_for_model: np.ndarray
-    ) -> np.ndarray:
-        parameters_target = self.add_cartesian(self.model, parameters_for_model)
+    def model_input_params_to_params_target(self, params_for_model: np.ndarray) -> np.ndarray:
+        params_target = self.add_cartesian(self.model, params_for_model)
         # Normalize parameters to be approximately equal so evaluation will penalize incorrect prediction roughly same
-        parameters_target[:, 0] = parameters_target[:, 0] * (10**5) * 0.5
-        parameters_target[:, 1] = parameters_target[:, 1] * (10**8)
-        return parameters_target
+        params_target[:, 0] = params_target[:, 0] * (10**5) * 0.5
+        params_target[:, 1] = params_target[:, 1] * (10**8)
+        return params_target
 
-    def create_parameters(self, num_samples: int):
+    def create_params(self, num_samples: int):
         # Random parameters wisth sensible upper and lower bounds
         # TODO add reference to table
         mu = np.random.uniform(low=[0, -np.pi], high=[np.pi, np.pi], size=(num_samples, 2))
@@ -506,7 +507,7 @@ class VERDICT(DMIPYModels):
         f_2 = 1 - f_0 - f_1
 
         # Big parameter vector to simulate_signal
-        self.parameters_for_model = self.model.parameters_to_parameter_vector(
+        self.params_for_model = self.model.parameters_to_parameter_vector(
             C1Stick_1_mu=mu,
             C1Stick_1_lambda_par=lambda_par,
             S4SphereGaussianPhaseApproximation_1_diameter=diameter,
@@ -514,7 +515,7 @@ class VERDICT(DMIPYModels):
             partial_volume_1=f_1,
             partial_volume_2=f_2,
         ).astype(np.float32)
-        self.parameters_target = self.model_input_parameters_to_parameters_target(self.parameters_for_model)
+        self.params_target = self.model_input_params_to_params_target(self.params_for_model)
 
     def set_acquisition_scheme_classical(self) -> None:
         # From https://cds.ismrm.org/protected/15MProceedings/PDFfiles/2872.pdf Table 1
@@ -545,11 +546,11 @@ class VERDICT(DMIPYModels):
         self.acquisition_scheme_classical = acquisition_scheme_from_bvalues(**scheme_dict)
         self.Ceval = self.acquisition_scheme_classical.number_of_measurements
 
-    def set_acquisition_scheme_super(self) -> None:
-        self.acquisition_scheme_super = (
+    def set_acquisition_scheme_dense(self) -> None:
+        self.acquisition_scheme_dense = (
             saved_acquisition_schemes.panagiotaki_verdict_acquisition_scheme()
         )
-        self.Cbar = self.acquisition_scheme_super.number_of_measurements
+        self.Cbar = self.acquisition_scheme_dense.number_of_measurements
 
     def plot_args(self):
         return dict(lim=(0, 1))
