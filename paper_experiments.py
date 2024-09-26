@@ -6,27 +6,30 @@ from tadred import tadred_main, utils
 
 import models_simulations_fitting
 
-save_figs_dir: str = None
+save_figs_dir: str = '/home/blumberg/Bureau/z_Automated_Measurement/Output/journal_paper_tst/images' # None
 
 experiments = dict(
     NODDI_model=models_simulations_fitting.NODDI,
     VERDICT_model=models_simulations_fitting.VERDICT,
-    # ADC_model=models_simulations_fitting.ADC,
-    # T1inv_model=models_simulations_fitting.T1INV,
+    ADC_model=models_simulations_fitting.ADC,
+    T1inv_model=models_simulations_fitting.T1INV,
 )
 
 num_samples: dict[str, int] = dict(
-    train=10**4,
-    val=10**3,
-    test=10**3,
+    train=10**5,
+    val=10**4,
+    test=10**4,
 )
-SNR_all = (10, 20, 30, 40, 50)
+SNR_all: tuple[int,...] = (10, 20, 30, 40, 50)
 
 # Neural network hyperparameters of the method TADRED
 tadred_args = utils.load_base_args()
-tadred_args.network.num_units_score = [1000, 1000]
-tadred_args.network.num_units_task = [1000, 1000]
+tadred_args.network.num_units_score: list[int] = [1000, 1000]
+tadred_args.network.num_units_task: list[int] = [1000, 1000]
 tadred_args.other_options.save_output = True
+
+
+#tadred_args.tadred_train_eval.epochs = 50
 
 
 for experiment_name, experiment_cls in experiments.items():

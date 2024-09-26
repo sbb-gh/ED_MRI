@@ -26,7 +26,7 @@ First create an environment and enter it, we use Python v3.10.4.  We provide two
 ```bash
 # Pyenv documentation is [link](https://github.com/pyenv), where <INSTALL_DIR> is the directory the virtual environment is installed in.
 python3.10 -m venv <INSTALL_DIR>/ED_MRI_env # Use compatible Python version e.g. 3.10.4
-. <INSTALL_DIR>/ED_MRI_env/bin/activate
+source <INSTALL_DIR>/ED_MRI_env/bin/activate
 ```
 
 #### Install Environment Using Conda
@@ -46,16 +46,21 @@ optional modules to generate the data: dipy, dmipy, nibabel.<br>
 <br>
 Code is tested using PyTorch v2.0.0, cuda 11.7 on the GPU, dipy v1.5.0, nibabel v5.1.0, dmipy v1.0.5.
 
-We provide two options for installing the code:
+We provide three options for installing the code:
 
-#### Python Package from Source
+### Installation with Generic Package Versions
+
+```bash
+git clone https://github.com/sbb-gh/tadred.git
+
+#### Python Package from Source With Package Versions We Used
 
 
 ```bash
 pip install git+https://github.com/sbb-gh/ED_MRI.git@main notebook
 ```
 
-#### Using pip
+#### Using Pip With Package Versions We Used
 
 ```bash
 pip install numpy==1.23.4 git+https://github.com/AthenaEPI/dmipy.git@1.0.1
