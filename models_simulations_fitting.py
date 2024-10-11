@@ -36,14 +36,20 @@ def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.n
             ax[0, param_i].set_title(f"Parameter {param_i}", fontsize=12)
             for pred_i, (pred_name, pred_array) in enumerate(
                 results_plot[SNR]["predictions"].items()
-            ):
-                pred_array_param = pred_array[:, param_i]
-                target_param = target[:, param_i]
+            ):                             
+            
+                if pred_array.ndim == 1:
+                    pred_array_param = pred_array
+                else:
+                    pred_array_param = pred_array[:, param_i]
+                                
+                target_param = target[:, param_i]                                                 
+                
                 ax[pred_i, param_i].plot(
                     target_param, pred_array_param, ".", markersize=1, color=colors[pred_i]
                 )
 
-                plot_lim = (np.floor(min(target_param)), np.ceil(min(target_param)))
+                plot_lim = (np.floor(min(target_param)), np.ceil(max(target_param)))
                 ax[pred_i, param_i].plot(plot_lim, plot_lim, "k", markersize=5)
                 ax[pred_i, param_i].set_ylim(plot_lim)
                 ax[pred_i, param_i].set_xlim(plot_lim)
@@ -147,7 +153,7 @@ class ADC(SimulationsFitting):
         self.maxb = 5
         self.minD = 0.1
         self.maxD = 3
-        dense().__init__(SNR=SNR)
+        super().__init__(SNR=SNR)
 
     def create_model(self):
         def adc_model(bval, D):
@@ -207,7 +213,8 @@ class ADC(SimulationsFitting):
             init = 1 / param_init  # int
             opt = minimize(f_crlb, init, args=fixed_args, method="Nelder-Mead", bounds=bnds).x
             acq_params_crlb.append(opt[0])
-        acq_params_crlb.append(0)
+            
+        acq_params_crlb.append(0) #for diffusion add a b=0 acquisition  
         self.acquisition_scheme_classical = np.array(acq_params_crlb)
 
     def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
@@ -232,12 +239,12 @@ class ADC(SimulationsFitting):
 
             return lb0
 
-        def rician_log_likelihood(signals: np.ndarray, synth_signals: np.ndarray, sigma: float):
+        def rician_log_likelihood(synth_signals: np.ndarray, signals: np.ndarray, sigma: float):
             sumsqsc = (signals**2 + synth_signals**2) / (2 * sigma**2)
-            scp = synth_signals * signals / sigma**2
+            scp =  signals * synth_signals / sigma**2
             #    lb0 = np.log(np.i0(scp))
             lb0 = log_i0(scp)
-            log_likelihoods = -2 * np.log(sigma) - sumsqsc + np.log(synth_signals) + lb0
+            log_likelihoods = -2 * np.log(sigma) - sumsqsc + np.log(signals) + lb0
             return np.sum(log_likelihoods)
 
         def rician_objective_function(
@@ -264,27 +271,36 @@ class ADC(SimulationsFitting):
 
 class T1INV(SimulationsFitting):
     def __init__(self, SNR: float):
+        self.minTi = 0.1
+        self.maxTi = 7
+        self.minT1 = 0.1
+        self.maxT1 = 7
         super().__init__(SNR=SNR)
+
+
+
 
     def create_model(self):
         def t1_model(ti, T1, tr=7):
-            signals = abs(1 - (2 * np.exp(-ti / T1)) + np.exp(-tr / T1))
-            return signals
+            return abs(1 - (2 * np.exp(-ti / T1)) + np.exp(-tr / T1))
+            
+        self.model = t1_model               
+        self.model_forward = t1_model
 
-        self.model = t1_model
+    def create_params(self, num_samples: int):       
+        self.params_for_model = np.random.uniform(
+            low=self.minT1, high=self.maxT1, size=(num_samples, 1)
+        ).astype(np.float32)
+        self.params_target = self.params_for_model                        
 
-    def create_params(self, num_samples: int):
-        minT1, maxT1 = 0.1, 7
-        self.params = np.random.uniform(low=minT1, high=maxT1, size=(num_samples, 1))
-
-    def set_acquisition_scheme_dense(self) -> None:
-        # TODO check
-        minTi, maxTi = 0.1, 7
+    def set_acquisition_scheme_dense(self) -> None:    
         self.Cbar = 192
-        self.acquisition_scheme_dense = np.linspace(minTi, maxTi, self.Cbar)
+        self.acquisition_scheme_dense = np.linspace(self.minTi, self.maxTi, self.Cbar)
 
     def set_acquisition_scheme_classical(self) -> None:
-        def f_crlb(ti, params, tr, sigma):
+        self.Ceval = self.Cbar // 16
+        
+        def f_crlb(ti: np.ndarray, params: np.ndarray, tr: float, sigma: float):
             # params[0] is S0, params[1] is T1
             # convert to R1
             params[1] = 1 / params[1]
@@ -297,37 +313,88 @@ class T1INV(SimulationsFitting):
             )
 
             fisher = (np.matmul(dy.T, dy)) / sigma**2
+            
             invfisher = np.linalg.inv(fisher)
             # second diagonal element is the lower bound on the variance of R1
             f = invfisher[1, 1]
 
             return f
+        
+        # Calculate CRLB optimal acquisition parameter (i.e. TI) for a range of T1
+        # Match number of model parameters in the range to the number of measurements in the final TADRED output
+        params_init = np.linspace(0, self.maxT1, self.Ceval + 1)[1:]
+        acq_params_crlb = []
 
-    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
-        def objective_function(D, bvals, signals):
-            return np.mean((signals - self.model(bvals, D)) ** 2)
+        # Don't affect the optimisation so can be fixed
+        S0 = 1
+        sigma = 1 / self.SNR
+        
+        #define the tr
+        tr = 7
+        
+        for i, param_init in enumerate(params_init):
+            fixed_args = (np.array((S0, param_init)), tr, sigma)  # (2,) float
+            bnds = ((self.minTi, self.maxTi),)  # acq_params_crlb                        
+            init = param_init  # int
+            opt = minimize(f_crlb, init, args=fixed_args, method="Nelder-Mead", bounds=bnds).x
+            acq_params_crlb.append(opt[0])
+            
+        self.acquisition_scheme_classical = np.array(acq_params_crlb)
 
-        num_test, num_measurements = data_test.shape
-        Dstart = 1
-        # TODO check
+
+
+    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:             
+        if scheme_name == "classical":
+            acquisition_scheme = self.acquisition_scheme_classical
+        elif scheme_name == "dense":
+            acquisition_scheme = self.acquisition_scheme_dense
+        else:
+            raise ValueError("Pick scheme_name to be classical | dense")                
+        
+        def objective_function(T1, ti, tr, signals):
+            return np.mean((signals - self.model(ti, T1, tr)) ** 2)
+
+        def log_i0(x):
+            exact = x < 700
+            approx = x >= 700
+
+            lb0 = np.zeros(np.shape(x))
+            lb0[exact] = np.log(np.i0(x[exact]))
+            # This is a more standard approximation.  For large x, I_0(x) -> exp(x)/sqrt(2 pi x).
+            lb0[approx] = x[approx] - np.log(2 * np.pi * x[approx]) / 2
+
+            return lb0
+        
+        def rician_log_likelihood(synth_signals: np.ndarray, signals: np.ndarray, sigma: float):
+            sumsqsc = (signals**2 + synth_signals**2) / (2 * sigma**2)
+            scp =  signals * synth_signals / sigma**2
+            #    lb0 = np.log(np.i0(scp))
+            lb0 = log_i0(scp)
+            log_likelihoods = -2 * np.log(sigma) - sumsqsc + np.log(signals) + lb0
+            return np.sum(log_likelihoods)
+        
+        def rician_objective_function(
+            T1: np.ndarray, ti: np.ndarray, tr: np.ndarray, signals: np.ndarray, sigma: float
+        ):
+            return -rician_log_likelihood(self.model(ti, T1, tr), signals, sigma)
+
+        T1start = 2
+        # TODO check                
         out_all = []
-        for i in range(num_test):
+        
+        #define the tr
+        tr = 7        
+        
+        for data_test_sample in data_test:
             out = minimize(
-                objective_function,
-                Dstart,
-                args=(self.acquisition_scheme_classical, data_test[i, :]),
+                rician_objective_function,
+                T1start,
+                args=(acquisition_scheme, tr, data_test_sample, 1 / self.SNR),
                 method="Nelder-Mead",
-            )
+            )     
             out_all.append(out.x.item())  # assumes single point solution
         return np.array(out_all)
-
-        fitted_params_crlb[i] = minimize(
-            rician_objective_function,
-            paramstart,
-            args=(acq_params_crlb, tr, signals_crlb[i, :], sigma_test),
-            method="Nelder-Mead",
-        ).x
-
+  
     def plot_args(self):
         return dict(lim=(0, 7.5))
 
