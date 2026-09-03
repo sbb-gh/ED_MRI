@@ -13,7 +13,6 @@ from dmipy.utils import utils  # type: ignore
 
 log = logging.getLogger(__name__)
 
-
 # Dummy example base class for simulation experiments
 class ExperimentsBase:
     def __init__(self):

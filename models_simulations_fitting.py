@@ -111,7 +111,7 @@ def plot_example_voxels(results_plot: dict[str, dict[str, str | np.ndarray]]):
     SNR_all = results_plot["SNR_all"]
     
     #hacky only plot some SNRs
-    SNR_all = [SNR_all[i] for i in [1, 3]]
+    # SNR_all = [SNR_all[i] for i in [1, 3]]
     
     title_name = results_plot["experiment_name"].replace("_", " ").capitalize()
     save_figs_dir = results_plot["save_figs_dir"]
