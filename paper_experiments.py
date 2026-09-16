@@ -1,4 +1,5 @@
 """ (c) Stefano B. Blumberg and Paddy J. Slator, do not redistribute or modify"""
+import logging
 import timeit
 
 from pathlib import Path
@@ -13,12 +14,15 @@ import os
 
 import models_simulations_fitting
 
+log = logging.getLogger(__name__)
+    
+
 #save_figs_dir: str = '/home/blumberg/Bureau/z_Automated_Measurement/Output/journal_paper_tst/images' # None
 #save_figs_dir: str = '/Users/paddyslator/python/ED/ED_MRI/examples/images_test' # None
-save_figs_dir: str = os.path.join(os.getcwd(), 'examples', 'paper_experiments') # None
+save_dir: str = os.path.join(os.getcwd(), 'results', 'paper_experiments') # None
 
 experiments = dict(
-    NODDI_model=models_simulations_fitting.NODDI,
+    #NODDI_model=models_simulations_fitting.NODDI,
     # VERDICT_model=models_simulations_fitting.VERDICT,
     ADC_model=models_simulations_fitting.ADC,
     T1inv_model=models_simulations_fitting.T1INV,
@@ -27,14 +31,14 @@ experiments = dict(
 #hard code the model parameters and units for plot labels 
 model_parameters = dict(
     #NODDI_model=('ODI','fstickinwatson', 'fiso', 'fwatson', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'), these are the pre-converted parameters
-    NODDI_model=('ODI','f$_{stick}$', 'f$_{ball}$', 'f$_{zeppelin}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
+    #NODDI_model=('ODI','f$_{stick}$', 'f$_{ball}$', 'f$_{zeppelin}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
     # VERDICT_model=('R$_{sphere}$ ($\mu$m)', 'stick d$_{par}$ ($\mu$m s$^{-1}$)', 'f$_{sphere}$', 'f$_{ball}$','f$_{stick}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
     ADC_model=('ADC ($\mu$m ms$^{-1}$)',),
     T1inv_model=('T1 (s)',),
 )
 
 acquisition_param_name = dict(
-    NODDI_model='b-value (s $\mu$m$^{-2}$)',
+    #NODDI_model='b-value (s $\mu$m$^{-2}$)',
     # VERDICT_model='b-value (s $\mu$m$^{-2}$)',
     ADC_model='b-value (s $\mu$m$^{-2}$)',
     T1inv_model='TI (s)',
@@ -63,21 +67,21 @@ tadred_args.other_options.save_output = True
 #tadred_args.tadred_train_eval.epochs = 50
 
 #base filename for saving the trained model and results
-tadred_args.output.out_base = save_figs_dir
+tadred_args.output.out_base = save_dir
             
 
 for experiment_name, experiment_cls in experiments.items():
     #save directory for the trained model and results    
-    this_save_figs_dir = os.path.join(save_figs_dir, experiment_name)
-    os.makedirs(this_save_figs_dir, exist_ok=True)
+    this_save_dir = os.path.join(save_dir, experiment_name)
+    os.makedirs(this_save_dir, exist_ok=True)
     tadred_args.output.proj_name = experiment_name
     
     results_plot = dict(
-        experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_figs_dir
+        experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_dir
     )
     
     results_plot_transformed = dict(
-        experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_figs_dir
+        experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_dir
     )
 
     # Initialize a dictionary to store parameters for different splits
@@ -152,9 +156,15 @@ for experiment_name, experiment_cls in experiments.items():
                 
         print(f"Time for {SNR} is {timeit.default_timer() - timer_SNR} sec")
 
+
+        #create a directory for the figure data
+        figure_data_dir = Path(results_plot["save_figs_dir"], "figure_data")
+        figure_data_dir.mkdir(parents=True, exist_ok=True)
+        log.info("Figure data directory:", figure_data_dir)
+
         np.save(
             Path(
-                os.path.join(save_figs_dir, experiment_name),
+                figure_data_dir,
                 f'{results_plot["experiment_name"]}_SNR{SNR}_predicted_vs_groundtruth_params_normalised.npy'  # Include the .npy extension
             ),
             results_plot  # This is the object to be saved
@@ -170,7 +180,7 @@ for experiment_name, experiment_cls in experiments.items():
         )
         
         results_plot_transformed[SNR] = dict(
-            experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_figs_dir
+            experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_dir
         )
         
         results_plot_transformed[SNR] = dict(target=experiment.params_target_to_model_input_params(data["test_tar"]), 
@@ -181,21 +191,29 @@ for experiment_name, experiment_cls in experiments.items():
         #save the transformed results for the predicted vs. ground truth plots
         np.save(
             Path(
-                this_save_figs_dir,
+                figure_data_dir,
                 f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_predicted_vs_groundtruth_params.npy'  # Include the .npy extension
             ),
             results_plot_transformed  # This is the object to be saved
         )
-        
+
+        #create a directory for the simulation data
+        sim_data_dir = Path(results_plot["save_figs_dir"], "data")
+        sim_data_dir.mkdir(parents=True, exist_ok=True)
+        log.info("Simulation data directory:", sim_data_dir)
         #save the simulation data
         np.save(
             Path(
-                this_save_figs_dir,
+                sim_data_dir,
                 f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_simulation_data.npy'  # Include the .npy extension
             ),
             data  # This is the object to be saved
         )
-                    
+
+    #create a directory for the figures                
+    figure_dir = Path(results_plot["save_figs_dir"], "figures")
+    figure_dir.mkdir(parents=True, exist_ok=True)
+    log.info("Output figures directory:", figure_dir)
     
     #plot the barplots using the normalised data            
     models_simulations_fitting.plot_barplots(results_plot)

@@ -6,12 +6,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 
-from dmipy.core import modeling_framework  # type: ignore
-from dmipy.core.acquisition_scheme import acquisition_scheme_from_bvalues  # type: ignore
-from dmipy.data import saved_acquisition_schemes  # type: ignore
-from dmipy.distributions import distribute_models  # type: ignore
-from dmipy.signal_models import cylinder_models, gaussian_models, sphere_models  # type: ignore
-from dmipy.utils import utils  # type: ignore
+# from dmipy.core import modeling_framework  # type: ignore
+# from dmipy.core.acquisition_scheme import acquisition_scheme_from_bvalues  # type: ignore
+# from dmipy.data import saved_acquisition_schemes  # type: ignore
+# from dmipy.distributions import distribute_models  # type: ignore
+# from dmipy.signal_models import cylinder_models, gaussian_models, sphere_models  # type: ignore
+# from dmipy.utils import utils  # type: ignore
 
 colors = ("tab:blue", "tab:orange", "tab:green", "tab:red")
 
@@ -20,7 +20,8 @@ def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.n
     title_name = results_plot["experiment_name"].replace("_", " ").capitalize()
     SNR_all = results_plot["SNR_all"]
     # plot_lim = results_plot["plot_args"]["lim"]
-    save_figs_dir = results_plot["save_figs_dir"]
+    save_figs_dir = Path(results_plot["save_figs_dir"], "figures")
+    save_figs_dir.mkdir(parents=True, exist_ok=True)
 
     for SNR_i, SNR in enumerate(SNR_all):
         target = results_plot[SNR]["target"]
@@ -74,7 +75,8 @@ def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.n
 def plot_barplots(results_plot: dict[str, dict[str, str | np.ndarray]]):
     SNR_all = results_plot["SNR_all"]
     title_name = results_plot["experiment_name"].replace("_", " ").capitalize()
-    save_figs_dir = results_plot["save_figs_dir"]
+    save_figs_dir = Path(results_plot["save_figs_dir"], "figures")
+    save_figs_dir.mkdir(parents=True, exist_ok=True)
     num_metrics = 2
     bar_width = 0.25
     fig, ax = plt.subplots(1, num_metrics, figsize=[4 * len(SNR_all), 6], squeeze=False)
@@ -114,7 +116,8 @@ def plot_example_voxels(results_plot: dict[str, dict[str, str | np.ndarray]]):
     # SNR_all = [SNR_all[i] for i in [1, 3]]
     
     title_name = results_plot["experiment_name"].replace("_", " ").capitalize()
-    save_figs_dir = results_plot["save_figs_dir"]
+    save_figs_dir = Path(results_plot["save_figs_dir"], "figures")
+    save_figs_dir.mkdir(parents=True, exist_ok=True)
 
     acquisition_param_name = results_plot["acquisition_param_name"] 
     
