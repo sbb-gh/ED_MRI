@@ -13,6 +13,7 @@ from tadred import tadred_main, utils
 import os
 
 import models_simulations_fitting
+import models_simulations_plotting
 
 log = logging.getLogger(__name__)
     
@@ -23,7 +24,7 @@ save_dir: str = os.path.join(os.getcwd(), 'results', 'paper_experiments') # None
 
 experiments = dict(
     #NODDI_model=models_simulations_fitting.NODDI,
-    # VERDICT_model=models_simulations_fitting.VERDICT,
+    #VERDICT_model=models_simulations_fitting.VERDICT,
     ADC_model=models_simulations_fitting.ADC,
     T1inv_model=models_simulations_fitting.T1INV,
 )
@@ -32,7 +33,7 @@ experiments = dict(
 model_parameters = dict(
     #NODDI_model=('ODI','fstickinwatson', 'fiso', 'fwatson', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'), these are the pre-converted parameters
     #NODDI_model=('ODI','f$_{stick}$', 'f$_{ball}$', 'f$_{zeppelin}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
-    # VERDICT_model=('R$_{sphere}$ ($\mu$m)', 'stick d$_{par}$ ($\mu$m s$^{-1}$)', 'f$_{sphere}$', 'f$_{ball}$','f$_{stick}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
+    #VERDICT_model=('R$_{sphere}$ ($\mu$m)', 'stick d$_{par}$ ($\mu$m s$^{-1}$)', 'f$_{sphere}$', 'f$_{ball}$','f$_{stick}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
     ADC_model=('ADC ($\mu$m ms$^{-1}$)',),
     T1inv_model=('T1 (s)',),
 )
@@ -121,7 +122,7 @@ for experiment_name, experiment_cls in experiments.items():
             int(el) for el in feature_set_sizes_Ci
         ]
         tadred_args.tadred_train_eval.feature_set_sizes_evaluated = [int(experiment.Ceval)]
-
+      
         tadred_result = tadred_main.run(tadred_args, data)
         
         predictions = dict(
@@ -130,7 +131,6 @@ for experiment_name, experiment_cls in experiments.items():
             TADRED=tadred_result[experiment.Ceval]["test_output"],
         )
               
-        print(np.shape(data["test"]))
         #example voxel for plotting
         example_voxel = dict(
             DenseScheme=data["test"][0,:],
@@ -201,14 +201,32 @@ for experiment_name, experiment_cls in experiments.items():
         sim_data_dir = Path(results_plot["save_figs_dir"], "data")
         sim_data_dir.mkdir(parents=True, exist_ok=True)
         log.info("Simulation data directory:", sim_data_dir)
-        #save the simulation data
+        #save the whole simulation data in a big dictionary
         np.save(
             Path(
                 sim_data_dir,
-                f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_simulation_data.npy'  # Include the .npy extension
+                f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_all_simulated_data.npy'  # Include the .npy extension
             ),
             data  # This is the object to be saved
         )
+        #also save the individual parts of the simulated data in separate files for easier access
+        for split in ("train", "val", "test"):
+            np.save(
+                Path(
+                    sim_data_dir,
+                    f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_{split}_simulated_signals.npy'  # Include the .npy extension
+                ),
+                data[split]  # This is the object to be saved
+            )
+        #and save the individual parts of the simulated target parameters in separate files for easier access
+        for split in ("train", "val", "test"):
+            np.save(
+                Path(
+                    sim_data_dir,
+                    f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_{split}_simulated_gt_params.npy'  # Include the .npy extension
+                ),
+                data[split + "_tar"]  # This is the object to be saved
+            )
 
     #create a directory for the figures                
     figure_dir = Path(results_plot["save_figs_dir"], "figures")
@@ -216,13 +234,13 @@ for experiment_name, experiment_cls in experiments.items():
     log.info("Output figures directory:", figure_dir)
     
     #plot the barplots using the normalised data            
-    models_simulations_fitting.plot_barplots(results_plot)
+    models_simulations_plotting.plot_barplots(results_plot)
     
     #plot the predicted vs. ground truth plots using the untransformed data            
-    models_simulations_fitting.plot_predicted_vs_target_params(results_plot_transformed)
+    models_simulations_plotting.plot_predicted_vs_target_params(results_plot_transformed)
         
     #plot the signal from one voxel for each acquistion scheme
-    models_simulations_fitting.plot_example_voxels(results_plot)
+    models_simulations_plotting.plot_example_voxels(results_plot)
 
         
     
