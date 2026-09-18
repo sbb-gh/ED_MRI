@@ -40,13 +40,13 @@ git clone https://github.com/sbb-gh/ED_MRI.git
 ```
 
 ### Installation Part 3: TADRED repo
-Now clone the TADRED code to ```<INSTALL_DIR>``` as follows.
+Now clone the relevant fork of the TADRED code to ```<INSTALL_DIR>``` as follows.
 
 ```bash
-git clone https://github.com/sbb-gh/tadred.git
+git clone https://github.com/PaddySlator/tadred.git
 ```
 
-The TADRED github repo is located [here](https://github.com/sbb-gh/tadred/tree/main).
+The relevant fork of the TADRED github repo is located [here](https://github.com/PaddySlator/tadred/tree/main).
 
 <!--TODO: You can also use pip install (doesn't work on mac)
 
@@ -63,8 +63,8 @@ Now create an activate a virtual environment in ```<INSTALL_DIR>```.  We provide
 The venv documentation is [here](https://docs.python.org/3/library/venv.html).
 
 ```bash
-python -m venv ED_MRI_env
-source ED_MRI_env/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 ```
 
 #### Option 2: Install Environment Using Conda
@@ -76,11 +76,26 @@ conda activate ED_MRI_env
 ```
 
 
-### Installation Part 5: Dependencies
+### Installation Part 5: TADRED and Dependencies
 
-Now install the dependencies using pip.
+Now install TADRED and the dependencies using pip.
 
-#### TADRED dependencies
+After first updating pip, install TADRED
+
+```bash
+pip install --upgrade pip
+cd tadred
+pip install -e .
+```
+
+and then the additional dependencies
+
+```bash
+pip install notebook matplotlib scipy
+```
+
+
+<!--#### TADRED dependencies
 
 TADRED requires pytorch, numpy, pyyaml, and hydra which can be installed as follows:
 
@@ -95,7 +110,7 @@ Required to run the example jupyter notebooks:
 
 ```bash
 pip install notebook
-```
+```-->
 
 #### [Optional] Full dependencies for replication of results
 Optional modules to generate the data and run a full replication of the results: dipy, dmipy, nibabel. Note that dmipy is no longer supported and can often be difficult to install. If you are struggling try cloning this repo https://github.com/PaddySlator/dmipy into ```<INSTALL_DIR>``` instead.
