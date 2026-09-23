@@ -18,35 +18,25 @@ The TADRED framework comprises a **subsampling network** and a **task nework**, 
 
 
 ## Typical usage pipeline
-The typical pipeline that we envisage for users of EDMRI is:
-
-1. Acquire oversampled MRI data - this could be real data acquired with a "research grade" protocol, or simulated data. We denote the acquisition scheme used to acquire this data the "superdesign". The data = raw data + task results, e.g. a full research grade dataset and parameter maps fitted from that full dataset.
-
-2. Training: Run `optimise_experiment` on the paired superdesign dataset to yield:
-2i) Optimised protocol, which is a subset of the oversampled data protocol.
-2ii) Trained task network for performing the task on the subsampled data. 
-
-3. Inference 
-3i) use the optimised protocol to acquire new data.
-3ii) Apply the trained task network to perform the task on this new data.
-
-
-## Typical usage pipeline
 
 The typical workflow we envisage for users of EDMRI is:
 
-1. **Generate the superdesign dataset.**
-   - **Acquire oversampled MRI data** using a comprehensive "research-grade" acquisition scheme, which we refer to as the **superdesign**. This may be real MRI data or simulated data. *This oversampled dataset is the input data for TADRED.*
-   - **Perform the task on the oversampled data** to generate the corresponding task outputs. For example, for a parameter estimation task, this could involve fitting parameter maps using the complete superdesign dataset. *These task outputs are the target data for TADRED.*
+### 1. Oversampled data acquisition
 
-2. **Training.** Run `edmri-optimise.py` on the paired inputs and targets from the superdesign dataset to generate:
-   - An **optimised protocol**, consisting of a subset of the acquisitions in the superdesign.
-   - A **trained task network** for performing the specified task using data acquired with the optimised protocol.
+- **Acquire oversampled MRI data** using a comprehensive "research-grade" acquisition scheme, which we refer to as the **superdesign**. This may be real MRI data or simulated data. *This oversampled dataset is the input data for TADRED.*
+- **Perform the task on the oversampled data** to generate the corresponding task outputs. For example, for a parameter estimation task, this could involve fitting parameter maps using the complete superdesign dataset. *These task outputs are the target data for TADRED.*
 
-3. **Inference.**
-   - **Acquire new data** using the optimised protocol.
-   - Run `edmri-inference.py` to **apply the trained task network** to the new data to perform the specified task.
+### 2. Training
 
+Run `optimise_experiment.py` on the paired inputs and targets from the superdesign dataset. This produces:
+
+- An **optimised protocol**, consisting of a subset of the acquisitions in the superdesign.
+- A **trained task network** for performing the target task using data acquired with the optimised protocol.
+
+### 3. Inference
+
+- **Acquire new data** using the optimised protocol.
+- Run `apply_trained_model.py` to **apply the trained task network** to the new data and perform the specified task.
 
 ## Contact
 
