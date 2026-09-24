@@ -6,6 +6,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 
+from crlb_optimisation import optimise_crlb_protocol
+
+# from dmipy.dmipy.signal_models.tests.test_zeppelin import Delta
+from models.sandi import sandi_signal
+
+import torch
+
+
 # from dmipy.core import modeling_framework  # type: ignore
 # from dmipy.core.acquisition_scheme import acquisition_scheme_from_bvalues  # type: ignore
 # from dmipy.data import saved_acquisition_schemes  # type: ignore
@@ -67,8 +75,8 @@ class SimulationsFitting:
         signals = self.add_noise(signals, noise_scale=1 / self.SNR).astype(np.float32)
         return signals
 
-    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
-        pass
+    # def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
+    #     pass
 
     def add_noise(self, data, noise_scale: float) -> np.ndarray:
         """Add Rician noise to data"""
@@ -108,98 +116,112 @@ class ADC(SimulationsFitting):
         self.Cbar = 192
         self.acquisition_scheme_dense = np.linspace(self.minb, self.maxb, self.Cbar)
 
-    def set_acquisition_scheme_classical(self) -> None:
+    def set_acquisition_scheme_classical(
+        self,
+    ):
         self.Ceval = self.Cbar // 16
 
-        def f_crlb(b: np.ndarray, params: np.ndarray, sigma: float):
-            # params[0] is S0
-            # params[1] is ADC
-            # params = np.zeros(2)
-            # params[0] = 1
-            # params[1] = 1
-            # sigma = 0.05
-            # need 2 b-values - so assume there is always a b=0 (CRLB with 2 b-values always chooses a b=0 anyway)
-            b = np.insert(b, 0, 0)
-
-            dy = np.zeros((len(b), 2), dtype=np.float32)
-            dy[:, 0] = np.exp(-b * params[1])
-            dy[:, 1] = -b * params[0] * np.exp(-b * params[1])
-
-            fisher = (np.matmul(dy.T, dy)) / sigma**2
-
-            invfisher = np.linalg.inv(fisher)
-            # second diagonal element is the lower bound on the variance of the ADC
-            f = invfisher[1, 1]
-            return f
-
-        # Calculate CRLB optimal acquisition parameter (e.g. b-value, TI) for a range of model parameters (e.g. ADC, T1)
-        # Match number of model parameters in the range to the number of measurements in the final TADRED output
-
-        # One less parameter for ADC as CRLB assumes a b=0
-        params_init = np.linspace(0, self.maxD, self.Ceval)[1:]
-        acq_params_crlb = []
-
-        # Don't affect the optimisation so can be fixed
-        S0 = 1
-        sigma = 1 / self.SNR
-
-        for i, param_init in enumerate(params_init):
-            fixed_args = (np.array((S0, param_init)), sigma)  # (2,) float
-            bnds = ((self.minb, self.maxb),)  # acq_params_crlb
-            init = 1 / param_init  # int
-            opt = minimize(f_crlb, init, args=fixed_args, method="Nelder-Mead", bounds=bnds).x
-            acq_params_crlb.append(opt[0])
-            
-        acq_params_crlb.append(0) #for diffusion add a b=0 acquisition  
-        self.acquisition_scheme_classical = np.array(acq_params_crlb)
-
-    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
-        if scheme_name == "classical":
-            acquisition_scheme = self.acquisition_scheme_classical
-        elif scheme_name == "dense":
-            acquisition_scheme = self.acquisition_scheme_dense
-        else:
-            raise ValueError("Pick scheme_name to be classical | dense")
-
-        def objective_function(D, bvals, signals):
-            return np.mean((signals - self.model(bvals, D)) ** 2)
-
-        def log_i0(x: np.ndarray):
-            exact = x < 700
-            approx = x >= 700
-
-            lb0 = np.zeros(np.shape(x), dtype=np.float32)
-            lb0[exact] = np.log(np.i0(x[exact]))
-            # This is a more standard approximation.  For large x, I_0(x) -> exp(x)/sqrt(2 pi x).
-            lb0[approx] = x[approx] - np.log(2 * np.pi * x[approx]) / 2
-
-            return lb0
-
-        def rician_log_likelihood(synth_signals: np.ndarray, signals: np.ndarray, sigma: float):
-            sumsqsc = (signals**2 + synth_signals**2) / (2 * sigma**2)
-            scp =  signals * synth_signals / sigma**2
-            #    lb0 = np.log(np.i0(scp))
-            lb0 = log_i0(scp)
-            log_likelihoods = -2 * np.log(sigma) - sumsqsc + np.log(signals) + lb0
-            return np.sum(log_likelihoods)
-
-        def rician_objective_function(
-            D: np.ndarray, bvals: np.ndarray, signals: np.ndarray, sigma: float
-        ):
-            return -rician_log_likelihood(self.model(bvals, D), signals, sigma)
-
-        Dstart = 1
-        # TODO check
-        out_all = []
-        for data_test_sample in data_test:
-            out = minimize(
-                rician_objective_function,
-                Dstart,
-                args=(acquisition_scheme, data_test_sample, 1 / self.SNR),
-                method="Nelder-Mead",
+        self.acquisition_scheme_classical = (
+            optimise_crlb_protocol(
+                model_name="ADC",
+                n_measurements=self.Ceval,
+                snr=self.SNR,
             )
-            out_all.append([out.x.item()])  # assumes single point solution
-        return np.array(out_all)
+        )
+
+
+    # def set_acquisition_scheme_classical(self) -> None:
+    #     self.Ceval = self.Cbar // 16
+
+    #     def f_crlb(b: np.ndarray, params: np.ndarray, sigma: float):
+    #         # params[0] is S0
+    #         # params[1] is ADC
+    #         # params = np.zeros(2)
+    #         # params[0] = 1
+    #         # params[1] = 1
+    #         # sigma = 0.05
+    #         # need 2 b-values - so assume there is always a b=0 (CRLB with 2 b-values always chooses a b=0 anyway)
+    #         b = np.insert(b, 0, 0)
+
+    #         dy = np.zeros((len(b), 2), dtype=np.float32)
+    #         dy[:, 0] = np.exp(-b * params[1])
+    #         dy[:, 1] = -b * params[0] * np.exp(-b * params[1])
+
+    #         fisher = (np.matmul(dy.T, dy)) / sigma**2
+
+    #         invfisher = np.linalg.inv(fisher)
+    #         # second diagonal element is the lower bound on the variance of the ADC
+    #         f = invfisher[1, 1]
+    #         return f
+
+    #     # Calculate CRLB optimal acquisition parameter (e.g. b-value, TI) for a range of model parameters (e.g. ADC, T1)
+    #     # Match number of model parameters in the range to the number of measurements in the final TADRED output
+
+    #     # One less parameter for ADC as CRLB assumes a b=0
+    #     params_init = np.linspace(0, self.maxD, self.Ceval)[1:]
+    #     acq_params_crlb = []
+
+    #     # Don't affect the optimisation so can be fixed
+    #     S0 = 1
+    #     sigma = 1 / self.SNR
+
+    #     for i, param_init in enumerate(params_init):
+    #         fixed_args = (np.array((S0, param_init)), sigma)  # (2,) float
+    #         bnds = ((self.minb, self.maxb),)  # acq_params_crlb
+    #         init = 1 / param_init  # int
+    #         opt = minimize(f_crlb, init, args=fixed_args, method="Nelder-Mead", bounds=bnds).x
+    #         acq_params_crlb.append(opt[0])
+            
+    #     acq_params_crlb.append(0) #for diffusion add a b=0 acquisition  
+    #     self.acquisition_scheme_classical = np.array(acq_params_crlb)
+
+    # def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
+    #     if scheme_name == "classical":
+    #         acquisition_scheme = self.acquisition_scheme_classical
+    #     elif scheme_name == "dense":
+    #         acquisition_scheme = self.acquisition_scheme_dense
+    #     else:
+    #         raise ValueError("Pick scheme_name to be classical | dense")
+
+    #     def objective_function(D, bvals, signals):
+    #         return np.mean((signals - self.model(bvals, D)) ** 2)
+
+    #     def log_i0(x: np.ndarray):
+    #         exact = x < 700
+    #         approx = x >= 700
+
+    #         lb0 = np.zeros(np.shape(x), dtype=np.float32)
+    #         lb0[exact] = np.log(np.i0(x[exact]))
+    #         # This is a more standard approximation.  For large x, I_0(x) -> exp(x)/sqrt(2 pi x).
+    #         lb0[approx] = x[approx] - np.log(2 * np.pi * x[approx]) / 2
+
+            # return lb0
+
+        # def rician_log_likelihood(synth_signals: np.ndarray, signals: np.ndarray, sigma: float):
+        #     sumsqsc = (signals**2 + synth_signals**2) / (2 * sigma**2)
+        #     scp =  signals * synth_signals / sigma**2
+        #     #    lb0 = np.log(np.i0(scp))
+        #     lb0 = log_i0(scp)
+        #     log_likelihoods = -2 * np.log(sigma) - sumsqsc + np.log(signals) + lb0
+        #     return np.sum(log_likelihoods)
+
+        # def rician_objective_function(
+        #     D: np.ndarray, bvals: np.ndarray, signals: np.ndarray, sigma: float
+        # ):
+        #     return -rician_log_likelihood(self.model(bvals, D), signals, sigma)
+
+        # Dstart = 1
+        # # TODO check
+        # out_all = []
+        # for data_test_sample in data_test:
+        # #     out = minimize(
+        #         rician_objective_function,
+        #         Dstart,
+        #         args=(acquisition_scheme, data_test_sample, 1 / self.SNR),
+        #         method="Nelder-Mead",
+        #     )
+        #     out_all.append([out.x.item()])  # assumes single point solution
+        # return np.array(out_all)
 
     def params_target_to_model_input_params(self, params_target: np.ndarray) -> np.ndarray:                               
         return params_target
@@ -249,101 +271,20 @@ class T1INV(SimulationsFitting):
         self.Cbar = 192
         self.acquisition_scheme_dense = np.linspace(self.minTi, self.maxTi, self.Cbar)
 
-    def set_acquisition_scheme_classical(self) -> None:
+
+    def set_acquisition_scheme_classical(
+        self,
+    ):
         self.Ceval = self.Cbar // 16
-        
-        def f_crlb(ti: np.ndarray, params: np.ndarray, tr: float, sigma: float):
-            # params[0] is S0, params[1] is T1
-            # convert to R1
-            params[1] = 1 / params[1]
-            # tr = 7, sigma = 1
 
-            dy = np.zeros((len(ti), 2), dtype=np.float32)
-            dy[:, 0] = 1 - 2 * np.exp(-ti * params[1]) + np.exp(-tr * params[1])
-            dy[:, 1] = params[0] * (
-                2 * ti * np.exp(-ti * params[1]) - tr * np.exp(-tr * params[1])
+        self.acquisition_scheme_classical = (
+            optimise_crlb_protocol(
+                model_name="T1INV",
+                n_measurements=self.Ceval,
+                snr=self.SNR,
             )
+        )
 
-            fisher = (np.matmul(dy.T, dy)) / sigma**2
-            
-            invfisher = np.linalg.inv(fisher)
-            # second diagonal element is the lower bound on the variance of R1
-            f = invfisher[1, 1]
-
-            return f
-        
-        # Calculate CRLB optimal acquisition parameter (i.e. TI) for a range of T1
-        # Match number of model parameters in the range to the number of measurements in the final TADRED output
-        params_init = np.linspace(0, self.maxT1, self.Ceval + 1)[1:]
-        acq_params_crlb = []
-
-        # Don't affect the optimisation so can be fixed
-        S0 = 1
-        sigma = 1 / self.SNR
-        
-        #define the tr
-        tr = 7
-        
-        for i, param_init in enumerate(params_init):
-            fixed_args = (np.array((S0, param_init)), tr, sigma)  # (2,) float
-            bnds = ((self.minTi, self.maxTi),)  # acq_params_crlb                        
-            init = param_init  # int
-            opt = minimize(f_crlb, init, args=fixed_args, method="Nelder-Mead", bounds=bnds).x
-            acq_params_crlb.append(opt[0])
-            
-        self.acquisition_scheme_classical = np.array(acq_params_crlb)
-   
-    def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:             
-        if scheme_name == "classical":
-            acquisition_scheme = self.acquisition_scheme_classical
-        elif scheme_name == "dense":
-            acquisition_scheme = self.acquisition_scheme_dense
-        else:
-            raise ValueError("Pick scheme_name to be classical | dense")                
-        
-        def objective_function(T1, ti, tr, signals):
-            return np.mean((signals - self.model(ti, T1, tr)) ** 2)
-
-        def log_i0(x):
-            exact = x < 700
-            approx = x >= 700
-
-            lb0 = np.zeros(np.shape(x))
-            lb0[exact] = np.log(np.i0(x[exact]))
-            # This is a more standard approximation.  For large x, I_0(x) -> exp(x)/sqrt(2 pi x).
-            lb0[approx] = x[approx] - np.log(2 * np.pi * x[approx]) / 2
-
-            return lb0
-        
-        def rician_log_likelihood(synth_signals: np.ndarray, signals: np.ndarray, sigma: float):
-            sumsqsc = (signals**2 + synth_signals**2) / (2 * sigma**2)
-            scp =  signals * synth_signals / sigma**2
-            #    lb0 = np.log(np.i0(scp))
-            lb0 = log_i0(scp)
-            log_likelihoods = -2 * np.log(sigma) - sumsqsc + np.log(signals) + lb0
-            return np.sum(log_likelihoods)
-        
-        def rician_objective_function(
-            T1: np.ndarray, ti: np.ndarray, tr: np.ndarray, signals: np.ndarray, sigma: float
-        ):
-            return -rician_log_likelihood(self.model(ti, T1, tr), signals, sigma)
-
-        T1start = 2
-        # TODO check                
-        out_all = []
-        
-        #define the tr
-        tr = 7        
-        
-        for data_test_sample in data_test:
-            out = minimize(
-                rician_objective_function,
-                T1start,
-                args=(acquisition_scheme, tr, data_test_sample, 1 / self.SNR),
-                method="Nelder-Mead",
-            )     
-            out_all.append([out.x.item()])  # assumes single point solution
-        return np.array(out_all)
   
     def params_target_to_model_input_params(self, params_target: np.ndarray) -> np.ndarray:                               
         return params_target
@@ -367,6 +308,290 @@ class T1INV(SimulationsFitting):
     def plot_args(self):
         return dict(lim=(0, 7.5))
 
+
+class SANDI(SimulationsFitting):
+
+    def __init__(self, SNR: float):
+
+        self.min_f_neurite = 0.1
+        self.max_f_neurite = 0.7
+
+        self.min_f_soma = 0.05
+        self.max_f_soma = 0.5
+
+        self.min_D_neurite = 0.5
+        self.max_D_neurite = 3.0
+
+        self.min_D_extra = 0.5
+        self.max_D_extra = 3.0
+
+        self.min_R_soma = 2.0
+        self.max_R_soma = 12.0
+
+        super().__init__(
+            SNR=SNR
+        )
+
+
+    def create_model(self):
+
+        def sandi_model(
+            acquisition_scheme,
+            params,
+        ):
+            """
+            Wrapper around the canonical PyTorch SANDI implementation.
+
+            acquisition_scheme columns:
+                0: delta [ms]
+                1: Delta [ms]
+                2: G [mT/m]
+
+            params columns:
+                0: f_neurite
+                1: f_soma
+                2: D_neurite [um^2/ms]
+                3: D_extra [um^2/ms]
+                4: R_soma [um]
+            """
+
+            acquisition_scheme = np.asarray(
+                acquisition_scheme
+            )
+
+            params = np.atleast_2d(
+                params
+            )
+
+            # Convert acquisition parameters to SI
+            delta = torch.tensor(
+                acquisition_scheme[:, 0] * 1e-3,
+                dtype=torch.float64,
+            )
+
+            Delta = torch.tensor(
+                acquisition_scheme[:, 1] * 1e-3,
+                dtype=torch.float64,
+            )
+
+            G = torch.tensor(
+                acquisition_scheme[:, 2] * 1e-3,
+                dtype=torch.float64,
+            )
+
+            signals = []
+
+            for p in params:
+
+                # Convert model parameters to SI
+                theta = torch.tensor(
+                    [
+                        p[0],
+                        p[1],
+                        p[2] * 1e-9,
+                        p[3] * 1e-9,
+                        p[4] * 1e-6,
+                    ],
+                    dtype=torch.float64,
+                )
+
+                signal = sandi_signal(
+                    theta,
+                    delta,
+                    Delta,
+                    G,
+                )
+
+                signals.append(
+                    signal.detach().cpu().numpy()
+                )
+
+            return np.asarray(
+                signals,
+                dtype=np.float32,
+            )
+
+        self.model = sandi_model
+        self.model_forward = sandi_model
+
+
+    def create_params(
+        self,
+        num_samples: int,
+    ):
+
+        params = []
+
+        while len(params) < num_samples:
+
+            f_neurite = np.random.uniform(
+                self.min_f_neurite,
+                self.max_f_neurite,
+            )
+
+            f_soma = np.random.uniform(
+                self.min_f_soma,
+                self.max_f_soma,
+            )
+
+            if (
+                f_neurite
+                + f_soma
+                >= 0.95
+            ):
+                continue
+
+            D_neurite = np.random.uniform(
+                self.min_D_neurite,
+                self.max_D_neurite,
+            )
+
+            D_extra = np.random.uniform(
+                self.min_D_extra,
+                self.max_D_extra,
+            )
+
+            R_soma = np.random.uniform(
+                self.min_R_soma,
+                self.max_R_soma,
+            )
+
+            params.append([
+                f_neurite,
+                f_soma,
+                D_neurite,
+                D_extra,
+                R_soma,
+            ])
+
+        self.params_for_model = np.asarray(
+            params,
+            dtype=np.float32,
+        )
+
+        self.params_target = (
+            self.params_for_model.copy()
+        )
+
+
+    def set_acquisition_scheme_dense(
+        self,
+    ):
+
+        delta_values = np.array([
+            5,
+            10,
+            15,
+            20,
+            30,
+            40,
+        ])
+
+        Delta_values = np.array([
+            15,
+            25,
+            35,
+            50,
+            65,
+            80,
+        ])
+
+        G_values = np.array([
+            50,
+            100,
+            150,
+            200,
+            250,
+            300,
+        ])
+
+        delta, Delta, G = np.meshgrid(
+            delta_values,
+            Delta_values,
+            G_values,
+            indexing="ij",
+        )
+
+        valid = (
+            Delta
+            >= delta + 2
+        )
+
+        self.acquisition_scheme_dense = (
+            np.column_stack((
+                delta[valid],
+                Delta[valid],
+                G[valid],
+            ))
+            .astype(np.float32)
+        )
+
+        self.Cbar = (
+            self.acquisition_scheme_dense
+            .shape[0]
+        )
+
+
+    def set_acquisition_scheme_classical(
+        self,
+    ):
+
+        self.Ceval = 12
+
+        self.acquisition_scheme_classical = (
+            optimise_crlb_protocol(
+                model_name="SANDI",
+                n_measurements=self.Ceval,
+                snr=self.SNR,
+            )
+        )
+
+
+    def params_target_to_model_input_params(
+        self,
+        params_target,
+    ):
+        return params_target
+
+
+    def extract_tadred_optimized_scheme(
+        self,
+        tadred_result,
+    ):
+
+        indices = extract_tadred_index(
+            tadred_result
+        )
+
+        return (
+            self.acquisition_scheme_dense[
+                indices
+            ]
+        )
+
+
+    def extract_example_acquisition_param(
+        self,
+        scheme_name,
+        tadred_result=None,
+    ):
+
+        return get_acquisition_scheme(
+            self,
+            scheme_name,
+            tadred_result,
+        )
+
+
+    def plot_args(self):
+        return dict(
+            lim=(0, 1)
+        )
+
+
+
+
+    
 
 class DMIPYModels(SimulationsFitting):
     def __init__(self, **kwargs):
@@ -712,3 +937,10 @@ class VERDICT(DMIPYModels):
     
     def plot_args(self):
         return dict(lim=(0, 1))
+
+
+
+
+
+
+

@@ -5,6 +5,8 @@ import timeit
 from pathlib import Path
 
 import sys
+
+from model_fitting_network import ModelFittingTrainer
 sys.path.append('/Users/paddyslator/python/ED/tadred')
 
 import numpy as np
@@ -25,8 +27,9 @@ save_dir: str = os.path.join(os.getcwd(), 'results', 'paper_experiments') # None
 experiments = dict(
     #NODDI_model=models_simulations_fitting.NODDI,
     #VERDICT_model=models_simulations_fitting.VERDICT,
-    ADC_model=models_simulations_fitting.ADC,
-    T1inv_model=models_simulations_fitting.T1INV,
+    SANDI_model=models_simulations_fitting.SANDI,
+    #ADC_model=models_simulations_fitting.ADC,
+    #T1inv_model=models_simulations_fitting.T1INV,
 )
 
 #hard code the model parameters and units for plot labels 
@@ -34,15 +37,17 @@ model_parameters = dict(
     #NODDI_model=('ODI','fstickinwatson', 'fiso', 'fwatson', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'), these are the pre-converted parameters
     #NODDI_model=('ODI','f$_{stick}$', 'f$_{ball}$', 'f$_{zeppelin}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
     #VERDICT_model=('R$_{sphere}$ ($\mu$m)', 'stick d$_{par}$ ($\mu$m s$^{-1}$)', 'f$_{sphere}$', 'f$_{ball}$','f$_{stick}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
-    ADC_model=('ADC ($\mu$m ms$^{-1}$)',),
+    ADC_model=(r'ADC ($\mu$m$^2$ ms$^{-1}$)',),
     T1inv_model=('T1 (s)',),
+    SANDI_model=('f$_{neurite}$','f$_{soma}$',r'D$_{neurite}$ ($\mu$m$^2$ ms$^{-1}$)',r'D$_{extra}$ ($\mu$m$^2$ ms$^{-1}$)',r'R$_{soma}$ ($\mu$m)',),
 )
 
 acquisition_param_name = dict(
     #NODDI_model='b-value (s $\mu$m$^{-2}$)',
     # VERDICT_model='b-value (s $\mu$m$^{-2}$)',
-    ADC_model='b-value (s $\mu$m$^{-2}$)',
+    ADC_model=r'b-value (s $\mu$m$^{-2}$)',
     T1inv_model='TI (s)',
+    SANDI_model=r'b-value (s $\mu$m$^{-2}$)',
 )
 
 # num_samples: dict[str, int] = dict(
@@ -51,9 +56,9 @@ acquisition_param_name = dict(
 #     test=10**4,
 # )
 num_samples: dict[str, int] = dict(
-    train=10**2,
-    val=10**1,
-    test=10**1,
+    train=10**5,
+    val=10**4,
+    test=10**4,
 )
 
 #SNR_all: tuple[int,...] = (10, 20, 30, 40, 50)
@@ -91,27 +96,67 @@ for experiment_name, experiment_cls in experiments.items():
     for SNR in SNR_all:
         timer_SNR = timeit.default_timer()
         experiment = experiment_cls(SNR)
-        data: dict = dict()        
+        # data: dict = dict()        
             
         tadred_args.output.run_name = experiment_name + "_SNR" + str(SNR) + "_n_train_vox_" + str(num_samples["train"]) 
 
+        data = {}
+        data_classical = {}
+        
         for split in ("train", "val", "test"):
-            # Generate parameters only if not already generated - ensures that the same ground truth parameters are used for each SNR
-            if fixed_params[split] is None:                            
-                # Generate parameters and store both params_for_model and params_target
-                experiment.create_params(num_samples[split])
-                fixed_params[split] = (experiment.params_for_model, experiment.params_target)
 
-            # Retrieve the stored parameters for the current split
-            experiment.params_for_model, experiment.params_target = fixed_params[split]
+            if fixed_params[split] is None:
+
+                experiment.create_params(
+                    num_samples[split]
+                )
+
+                fixed_params[split] = (
+                    experiment.params_for_model,
+                    experiment.params_target,
+                )
+
+            (
+                experiment.params_for_model,
+                experiment.params_target,
+            ) = fixed_params[split]
+
+            # Dense / superdesign
+            data[split] = (
+                experiment.create_data_dense()
+            )
+
+            data[split + "_tar"] = (
+                experiment.params_target
+            )
+
+            # CRLB / classical acquisition
+            data_classical[split] = (
+                experiment.create_data_classical()
+            )
+
+            data_classical[
+                split + "_tar"
+            ] = experiment.params_target
+
+
+        # for split in ("train", "val", "test"):
+        #     # Generate parameters only if not already generated - ensures that the same ground truth parameters are used for each SNR
+        #     if fixed_params[split] is None:                            
+        #         # Generate parameters and store both params_for_model and params_target
+        #         experiment.create_params(num_samples[split])
+        #         fixed_params[split] = (experiment.params_for_model, experiment.params_target)
+
+        #     # Retrieve the stored parameters for the current split
+        #     experiment.params_for_model, experiment.params_target = fixed_params[split]
                                     
-            data_split = experiment.create_data_dense()
-            data[split] = data_split
-            data[split + "_tar"] = experiment.params_target
+        #     data_split = experiment.create_data_dense()
+        #     data[split] = data_split
+        #     data[split + "_tar"] = experiment.params_target
                                    
 
-            if split == "test":
-                data_classical_test = experiment.create_data_classical()
+        #     if split == "test":
+        #         data_classical_test = experiment.create_data_classical()
 
         feature_set_sizes_Ci = np.logspace(
             np.log(experiment.Cbar), np.log(experiment.Ceval), 5, base=np.exp(1), dtype=int
@@ -124,17 +169,72 @@ for experiment_name, experiment_cls in experiments.items():
         tadred_args.tadred_train_eval.feature_set_sizes_evaluated = [int(experiment.Ceval)]
       
         tadred_result = tadred_main.run(tadred_args, data)
-        
-        predictions = dict(
-            CRLB=experiment.fit_and_prediction(data_classical_test, "classical"),
-            DenseScheme=experiment.fit_and_prediction(data["test"], "dense"),
-            TADRED=tadred_result[experiment.Ceval]["test_output"],
+
+        #CRLB fitting and prediction using the classical acquisition scheme
+        crlb_trainer = ModelFittingTrainer(
+            hidden_units=list(
+                tadred_args.network.num_units_task
+            ),
+            train_pytorch=tadred_args.train_pytorch,
+            epochs=tadred_args.tadred_train_eval.epochs,
+            no_gpu=tadred_args.other_options.no_gpu,
         )
+
+        crlb_trainer.fit(
+            train_x=data_classical["train"],
+            train_y=data_classical["train_tar"],
+            val_x=data_classical["val"],
+            val_y=data_classical["val_tar"],
+        )
+
+        crlb_prediction = (
+            crlb_trainer.predict(
+                data_classical["test"]
+            )
+        )
+
+        #DenseScheme fitting and prediction using the dense acquisition scheme
+        dense_trainer = ModelFittingTrainer(
+            hidden_units=list(
+                tadred_args.network.num_units_task
+            ),
+            train_pytorch=tadred_args.train_pytorch,
+            epochs=tadred_args.tadred_train_eval.epochs,
+            no_gpu=tadred_args.other_options.no_gpu,
+        )
+
+        dense_trainer.fit(
+            train_x=data["train"],
+            train_y=data["train_tar"],
+            val_x=data["val"],
+            val_y=data["val_tar"],
+        )
+
+        dense_prediction = (
+            dense_trainer.predict(
+                data["test"]
+            )
+        )
+
+        predictions = dict(
+            CRLB=crlb_prediction,
+            DenseScheme=dense_prediction,
+            TADRED=tadred_result[
+                experiment.Ceval
+            ]["test_output"],
+        )
+        
+        
+        # predictions = dict(
+        #     CRLB=experiment.fit_and_prediction(data_classical_test, "classical"),
+        #     DenseScheme=experiment.fit_and_prediction(data["test"], "dense"),
+        #     TADRED=tadred_result[experiment.Ceval]["test_output"],
+        # )
               
         #example voxel for plotting
         example_voxel = dict(
             DenseScheme=data["test"][0,:],
-            CRLB=data_classical_test[0,:],            
+            CRLB=data_classical["test"][0,:],            
             TADRED=data["test"][0,models_simulations_fitting.extract_tadred_index(tadred_result)],
         ) 
         #example part of the acquisition scheme for plotting, e.g. b-value, TI
