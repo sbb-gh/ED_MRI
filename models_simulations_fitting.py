@@ -8,8 +8,7 @@ from scipy.optimize import minimize
 
 from crlb_optimisation import optimise_crlb_protocol
 
-# from dmipy.dmipy.signal_models.tests.test_zeppelin import Delta
-from models.sandi import sandi_signal
+from models.sandi import _calculate_b, sandi_signal
 
 import torch
 
@@ -313,19 +312,19 @@ class SANDI(SimulationsFitting):
 
     def __init__(self, SNR: float):
 
-        self.min_f_neurite = 0.1
-        self.max_f_neurite = 0.7
+        self.min_f_neurite = 0.01
+        self.max_f_neurite = 0.99
 
-        self.min_f_soma = 0.05
-        self.max_f_soma = 0.5
+        self.min_f_soma = 0.01
+        self.max_f_soma = 0.99
 
-        self.min_D_neurite = 0.5
+        self.min_D_neurite = 0.1
         self.max_D_neurite = 3.0
 
-        self.min_D_extra = 0.5
+        self.min_D_extra = 0.1
         self.max_D_extra = 3.0
 
-        self.min_R_soma = 2.0
+        self.min_R_soma = 1.0
         self.max_R_soma = 12.0
 
         super().__init__(
@@ -479,31 +478,17 @@ class SANDI(SimulationsFitting):
     ):
 
         delta_values = np.array([
-            5,
-            10,
-            15,
-            20,
-            30,
-            40,
+            8, 12, 16, 20, 25, 30
         ])
 
         Delta_values = np.array([
-            15,
-            25,
-            35,
-            50,
-            65,
-            80,
+            20, 30, 40, 50, 65, 80
         ])
 
         G_values = np.array([
-            50,
-            100,
-            150,
-            200,
-            250,
-            300,
+            50, 100, 150, 200, 250, 300
         ])
+               
 
         delta, Delta, G = np.meshgrid(
             delta_values,
@@ -512,19 +497,29 @@ class SANDI(SimulationsFitting):
             indexing="ij",
         )
 
-        valid = (
-            Delta
-            >= delta + 2
+        # Allow time between the gradient lobes
+        min_gap = 5  # ms
+
+        valid_timing = Delta >= delta + min_gap
+
+        # calculate_b expects SI units
+        b = _calculate_b(
+            delta * 1e-3,  # ms -> s
+            Delta * 1e-3,  # ms -> s
+            G * 1e-3,      # mT/m -> T/m
         )
 
-        self.acquisition_scheme_dense = (
-            np.column_stack((
-                delta[valid],
-                Delta[valid],
-                G[valid],
-            ))
-            .astype(np.float32)
-        )
+        # s/m^2 -> ms/um^2
+        b *= 1e-9
+
+        # Limit to b <= 10 ms/um^2
+        valid = valid_timing & (b <= 10.0)
+
+        self.acquisition_scheme_dense = np.column_stack([
+            delta[valid],
+            Delta[valid],
+            G[valid],
+        ]).astype(np.float32)
 
         self.Cbar = (
             self.acquisition_scheme_dense

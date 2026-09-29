@@ -56,9 +56,9 @@ acquisition_param_name = dict(
 #     test=10**4,
 # )
 num_samples: dict[str, int] = dict(
-    train=10**5,
-    val=10**4,
-    test=10**4,
+    train=10**4,
+    val=10**3,
+    test=10**3,
 )
 
 #SNR_all: tuple[int,...] = (10, 20, 30, 40, 50)

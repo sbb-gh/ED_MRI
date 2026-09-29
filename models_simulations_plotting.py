@@ -2,11 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
+from models.sandi import _calculate_b
+
+_calculate_b
 
 colors = ("tab:blue", "tab:orange", "tab:green", "tab:red")
 
 
-def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.ndarray]]):
+def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.ndarray]], saveon=True):
     title_name = results_plot["experiment_name"].replace("_", " ").capitalize()
     SNR_all = results_plot["SNR_all"]
     # plot_lim = results_plot["plot_args"]["lim"]
@@ -50,19 +53,20 @@ def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.n
                     ax[pred_i, 0].set_ylabel(f"{pred_name}", fontsize=19, color=colors[pred_i])
             ax[num_pred - 1, param_i].set_xlabel(f"Ground Truth", fontsize=12)
 
-        fig.savefig(
-            Path(
-                save_figs_dir,
-                f'{results_plot["experiment_name"]}_SNR{SNR}_predicted_vs_groundtruth_params',
-            ),
-            bbox_inches="tight",
-        )
-        
-        plt.close()
+        if saveon:
+            fig.savefig(
+                Path(
+                    save_figs_dir,
+                    f'{results_plot["experiment_name"]}_SNR{SNR}_predicted_vs_groundtruth_params',
+                ),
+                bbox_inches="tight",
+            )
+            
+            plt.close()
 
 
 
-def plot_barplots(results_plot: dict[str, dict[str, str | np.ndarray]]):
+def plot_barplots(results_plot: dict[str, dict[str, str | np.ndarray]], saveon=True):
     SNR_all = results_plot["SNR_all"]
     title_name = results_plot["experiment_name"].replace("_", " ").capitalize()
     save_figs_dir = Path(results_plot["save_figs_dir"], "figures")
@@ -95,11 +99,12 @@ def plot_barplots(results_plot: dict[str, dict[str, str | np.ndarray]]):
         ax[0, metric_i].set_yscale("log")
         ax[0, metric_i].legend(fontsize=16)
 
-    fig.savefig(Path(save_figs_dir, f'{results_plot["experiment_name"]}_barplot'))
+    if saveon:
+        fig.savefig(Path(save_figs_dir, f'{results_plot["experiment_name"]}_barplot'))
     
-    plt.close()
+        plt.close()
 
-def plot_example_voxels(results_plot: dict[str, dict[str, str | np.ndarray]]):
+def plot_example_voxels(results_plot: dict[str, dict[str, str | np.ndarray]], saveon=True):
     SNR_all = results_plot["SNR_all"]
     
     #hacky only plot some SNRs
@@ -134,6 +139,21 @@ def plot_example_voxels(results_plot: dict[str, dict[str, str | np.ndarray]]):
             DenseScheme_acquisition_scheme = DenseScheme_acquisition_scheme*1e-9
             CRLB_acquisition_scheme = CRLB_acquisition_scheme*1e-9
             TADRED_acquisition_scheme = TADRED_acquisition_scheme*1e-9
+
+        #hardcoded
+        if results_plot["experiment_name"] == "SANDI_model":
+            delta = {}
+            Delta = {}
+            G = {}
+
+            for Scheme in ("DenseScheme", "CRLB", "TADRED"):
+                delta[Scheme] = results_plot[SNR]["example_acquisition_param"][Scheme][:,0] * 1e-3
+                Delta[Scheme] = results_plot[SNR]["example_acquisition_param"][Scheme][:,1] * 1e-3
+                G[Scheme] = results_plot[SNR]["example_acquisition_param"][Scheme][:,2] * 1e-3
+
+            DenseScheme_acquisition_scheme = _calculate_b(delta["DenseScheme"],Delta["DenseScheme"],G["DenseScheme"]) * 1e-9
+            CRLB_acquisition_scheme = _calculate_b(delta["CRLB"],Delta["CRLB"],G["CRLB"]) * 1e-9
+            TADRED_acquisition_scheme = _calculate_b(delta["TADRED"],Delta["TADRED"],G["TADRED"]) * 1e-9
         
         ax[0, SNR_i].plot(DenseScheme_acquisition_scheme, DenseScheme_example_voxel, '.', color='grey', label='DenseScheme')
         ax[0, SNR_i].plot(TADRED_acquisition_scheme, TADRED_example_voxel, 'ro',markersize=7, label='TADRED')
@@ -150,16 +170,16 @@ def plot_example_voxels(results_plot: dict[str, dict[str, str | np.ndarray]]):
         
         ax[0, SNR_i].legend(fontsize=16)
     
-    
-    fig.savefig(
-        Path(
-            save_figs_dir,
-            f'{results_plot["experiment_name"]}_example_voxels',
-        ),
-        bbox_inches="tight",
-    )
-      
-    plt.close()
+    if saveon:
+        fig.savefig(
+            Path(
+                save_figs_dir,
+                f'{results_plot["experiment_name"]}_example_voxels',
+            ),
+            bbox_inches="tight",
+        )
+        
+        plt.close()
     
     #option to plot with different shades and markers
     # from matplotlib.colors import LinearSegmentedColormap
