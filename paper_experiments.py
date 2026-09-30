@@ -28,8 +28,8 @@ experiments = dict(
     #NODDI_model=models_simulations_fitting.NODDI,
     #VERDICT_model=models_simulations_fitting.VERDICT,
     SANDI_model=models_simulations_fitting.SANDI,
-    #ADC_model=models_simulations_fitting.ADC,
-    #T1inv_model=models_simulations_fitting.T1INV,
+    ADC_model=models_simulations_fitting.ADC,
+    T1inv_model=models_simulations_fitting.T1INV,
 )
 
 #hard code the model parameters and units for plot labels 
@@ -50,11 +50,6 @@ acquisition_param_name = dict(
     SANDI_model=r'b-value (s $\mu$m$^{-2}$)',
 )
 
-# num_samples: dict[str, int] = dict(
-#     train=10**5,
-#     val=10**4,
-#     test=10**4,
-# )
 num_samples: dict[str, int] = dict(
     train=10**4,
     val=10**3,
@@ -63,6 +58,10 @@ num_samples: dict[str, int] = dict(
 
 #SNR_all: tuple[int,...] = (10, 20, 30, 40, 50)
 SNR_all: tuple[int,...] = (10, 20)
+
+SNR_range = (10,50) # range of SNR values for training data
+
+
 
 
 # Neural network hyperparameters of the method TADRED
@@ -121,23 +120,27 @@ for experiment_name, experiment_cls in experiments.items():
                 experiment.params_target,
             ) = fixed_params[split]
 
-            # Dense / superdesign
-            data[split] = (
-                experiment.create_data_dense()
-            )
+            if split in ("train", "val"):
+                # Train/validation data spanning a range of SNR values
 
-            data[split + "_tar"] = (
-                experiment.params_target
-            )
+                #dense acquisition scheme
+                data[split] = experiment.create_data_dense(snr_range=SNR_range)
 
-            # CRLB / classical acquisition
-            data_classical[split] = (
-                experiment.create_data_classical()
-            )
+                # CRLB / classical acquisition
+                data_classical[split] = experiment.create_data_classical(snr_range=SNR_range)
+            else:
+                # Final test data at a specific SNR value
 
-            data_classical[
-                split + "_tar"
-            ] = experiment.params_target
+                #dense acquisition scheme
+                data[split] = experiment.create_data_dense(snr=SNR)
+
+                # CRLB / classical acquisition
+                data_classical[split] = experiment.create_data_classical(snr=SNR)
+
+            
+            data[split + "_tar"] = experiment.params_target     
+
+            data_classical[split + "_tar"] = experiment.params_target
 
 
         # for split in ("train", "val", "test"):

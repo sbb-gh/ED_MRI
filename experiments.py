@@ -69,10 +69,31 @@ class ExperimentsBase:
         plot_all(self.predictions_all)
 
 
-def add_noise(data, noise_scale: float) -> np.ndarray:
+# def add_noise(data, noise_scale: float) -> np.ndarray:
+#     """Add Rician noise to data"""
+#     rng = np.random.default_rng()
+#     rng.standard_normal(10, dtype=np.float32)
+
+#     # TODO add np.float32
+#     data_real = data + np.random.normal(scale=noise_scale, size=np.shape(data))
+#     data_imag = np.random.normal(scale=noise_scale, size=np.shape(data))
+#     data_noisy = np.sqrt(data_real**2 + data_imag**2)
+
+#     return data_noisy
+
+def add_noise(data, snr_range: tuple[float, float] = (10, 100)) -> np.ndarray:
     """Add Rician noise to data"""
     rng = np.random.default_rng()
     rng.standard_normal(10, dtype=np.float32)
+
+    # One random SNR per sample
+    snr = rng.uniform(
+        snr_range[0],
+        snr_range[1],
+        size=(data.shape[0], 1),
+    ).astype(np.float32)
+
+    noise_scale = 1.0 / snr
 
     # TODO add np.float32
     data_real = data + np.random.normal(scale=noise_scale, size=np.shape(data))

@@ -67,18 +67,21 @@ def _crlb_objective(
             sigma=sigma,
         )
 
-        reg = (
-            1e-8
-            * torch.eye(
-                F.shape[0],
-                dtype=F.dtype,
-                device=F.device,
-            )
-        )
+        # reg = (
+        #     1e-8
+        #     * torch.trace(F) / F.shape[0]
+        #     * torch.eye(
+        #         F.shape[0],
+        #         dtype=F.dtype,
+        #         device=F.device,
+        #     )
+        # )
 
-        crlb = torch.linalg.inv(
-            F + reg
-        )
+        # crlb = torch.linalg.inv(
+        #     F + reg
+        # )
+
+        crlb = torch.linalg.pinv(F)
 
         losses.append(
             torch.trace(crlb)
@@ -94,7 +97,7 @@ def _crlb_objective(
 def optimise_crlb_protocol(
     model_name,
     n_measurements,
-    snr,
+    snr=20,
     n_parameter_sets=32,
     n_iterations=100,
     lr=0.03,

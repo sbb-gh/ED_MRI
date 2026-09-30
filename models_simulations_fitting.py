@@ -64,30 +64,67 @@ class SimulationsFitting:
         self.acquisition_scheme_classical: any
         self.Ceval: int
 
-    def create_data_dense(self) -> np.ndarray:
+    def create_data_dense(self, snr=None, snr_range=None) -> np.ndarray:
         signals = self.model_forward(self.acquisition_scheme_dense, self.params_for_model)
-        signals = self.add_noise(signals, noise_scale=1 / self.SNR).astype(np.float32)
-        return signals
+        noisy_signals = self.add_noise(signals, snr=snr, snr_range=snr_range).astype(np.float32)
+        return noisy_signals
 
-    def create_data_classical(self) -> np.ndarray:
+    def create_data_classical(self, snr=None, snr_range=None) -> np.ndarray:
         signals = self.model_forward(self.acquisition_scheme_classical, self.params_for_model)
-        signals = self.add_noise(signals, noise_scale=1 / self.SNR).astype(np.float32)
+        signals = self.add_noise(signals, snr=snr, snr_range=snr_range).astype(np.float32)
         return signals
 
     # def fit_and_prediction(self, data_test: np.ndarray, scheme_name: str) -> np.ndarray:
     #     pass
 
-    def add_noise(self, data, noise_scale: float) -> np.ndarray:
-        """Add Rician noise to data"""
-        rng = np.random.default_rng()
-        rng.standard_normal(10, dtype=np.float32)
+    def add_noise(
+        self,
+        data: np.ndarray,
+        snr: float | None = None,
+        snr_range: tuple[float, float] | None = None,
+    ) -> np.ndarray:
+        """Add Rician noise at either a fixed or randomly sampled SNR."""
 
-        data_real = data + np.random.normal(scale=noise_scale, size=np.shape(data)).astype(
-            np.float32
-        )
+        rng = np.random.default_rng()
+
+        if snr_range is not None:
+            # One independently sampled noise level per sample
+            noise_scale = rng.uniform(
+                1.0 / snr_range[1],
+                1.0 / snr_range[0],
+                size=(data.shape[0], 1),
+            ).astype(np.float32)
+
+        elif snr is not None:
+            noise_scale = np.float32(
+                1.0 / snr
+            )
+
+        else:
+            raise ValueError(
+                "Provide either snr or snr_range."
+            )
+
+        data_real = data + np.random.normal(scale=noise_scale, size=np.shape(data)).astype(np.float32)
         data_imag = np.random.normal(scale=noise_scale, size=np.shape(data)).astype(np.float32)
-        data_noisy = np.sqrt(data_real**2 + data_imag**2)
+        data_noisy = np.sqrt(data_real**2 + data_imag**2).astype(np.float32)
+
         return data_noisy
+
+
+
+
+    # def add_noise(self, data, noise_scale: float) -> np.ndarray:
+    #     """Add Rician noise to data"""
+    #     rng = np.random.default_rng()
+    #     rng.standard_normal(10, dtype=np.float32)
+
+    #     data_real = data + np.random.normal(scale=noise_scale, size=np.shape(data)).astype(
+    #         np.float32
+    #     )
+    #     data_imag = np.random.normal(scale=noise_scale, size=np.shape(data)).astype(np.float32)
+    #     data_noisy = np.sqrt(data_real**2 + data_imag**2)
+    #     return data_noisy
 
 
 class ADC(SimulationsFitting):
