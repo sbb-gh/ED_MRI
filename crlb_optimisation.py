@@ -15,7 +15,6 @@ def _fisher_information(
     theta,
     acquisition_params,
     parameter_scales,
-    sigma,
 ):
     """
     Fisher information for one parameter set.
@@ -38,10 +37,7 @@ def _fisher_information(
         * parameter_scales[None, :]
     )
 
-    return (
-        J_scaled.T
-        @ J_scaled
-    ) / sigma**2
+    return J_scaled.T @ J_scaled
 
 
 def _crlb_objective(
@@ -49,7 +45,6 @@ def _crlb_objective(
     theta_grid,
     acquisition_params,
     parameter_scales,
-    sigma,
 ):
     """
     Mean A-optimal CRLB across parameter sets.
@@ -64,7 +59,6 @@ def _crlb_objective(
             theta=theta,
             acquisition_params=acquisition_params,
             parameter_scales=parameter_scales,
-            sigma=sigma,
         )
 
         # reg = (
@@ -97,7 +91,6 @@ def _crlb_objective(
 def optimise_crlb_protocol(
     model_name,
     n_measurements,
-    snr=20,
     n_parameter_sets=32,
     n_iterations=100,
     lr=0.03,
@@ -134,8 +127,6 @@ def optimise_crlb_protocol(
         lr=lr,
     )
 
-    sigma = 1 / snr
-
     for iteration in range(
         n_iterations
     ):
@@ -154,7 +145,6 @@ def optimise_crlb_protocol(
             parameter_scales=config[
                 "parameter_scales"
             ],
-            sigma=sigma,
         )
 
         loss.backward()

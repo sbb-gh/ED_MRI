@@ -17,7 +17,7 @@ def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.n
     save_figs_dir.mkdir(parents=True, exist_ok=True)
 
     for SNR_i, SNR in enumerate(SNR_all):
-        target = results_plot[SNR]["target"]
+        target = np.asarray(results_plot[SNR]["target"])
         num_param = target.shape[1]
         num_pred = len(results_plot[SNR]["predictions"])
         fig, ax = plt.subplots(
@@ -32,12 +32,13 @@ def plot_predicted_vs_target_params(results_plot: dict[str, dict[str, str | np.n
             for pred_i, (pred_name, pred_array) in enumerate(
                 results_plot[SNR]["predictions"].items()
             ):                             
-            
+                pred_array = np.asarray(pred_array)
+
                 if pred_array.ndim == 1:
                     pred_array_param = pred_array
                 else:
                     pred_array_param = pred_array[:, param_i]
-                                
+                                                    
                 target_param = target[:, param_i]                                                 
                 
                 ax[pred_i, param_i].plot(
@@ -77,8 +78,9 @@ def plot_barplots(results_plot: dict[str, dict[str, str | np.ndarray]], saveon=T
     fig.suptitle(f"{title_name}", fontsize=32)
 
     for SNR_i, SNR in enumerate(SNR_all):
-        target = results_plot[SNR]["target"]
+        target = np.asarray(results_plot[SNR]["target"])
         for pred_i, (pred_name, pred_array) in enumerate(results_plot[SNR]["predictions"].items()):
+            pred_array = np.asarray(pred_array)
             MSE = np.mean((target - pred_array) ** 2)
             MAE = np.mean(np.abs(target - pred_array))
             
@@ -122,13 +124,13 @@ def plot_example_voxels(results_plot: dict[str, dict[str, str | np.ndarray]], sa
     
     for SNR_i, SNR in enumerate(SNR_all):            
                                 
-        DenseScheme_acquisition_scheme = results_plot[SNR]["example_acquisition_param"]["DenseScheme"][:,0]
-        CRLB_acquisition_scheme = results_plot[SNR]["example_acquisition_param"]["CRLB"][:,0]
-        TADRED_acquisition_scheme = results_plot[SNR]["example_acquisition_param"]["TADRED"][:,0]                
+        DenseScheme_acquisition_scheme = np.asarray(results_plot[SNR]["example_acquisition_param"]["DenseScheme"][:,0])
+        CRLB_acquisition_scheme = np.asarray(results_plot[SNR]["example_acquisition_param"]["CRLB"][:,0])
+        TADRED_acquisition_scheme = np.asarray(results_plot[SNR]["example_acquisition_param"]["TADRED"][:,0])                
             
-        DenseScheme_example_voxel = results_plot[SNR]["example_voxel"]["DenseScheme"]
-        CRLB_example_voxel = results_plot[SNR]["example_voxel"]["CRLB"]
-        TADRED_example_voxel = results_plot[SNR]["example_voxel"]["TADRED"]
+        DenseScheme_example_voxel = np.asarray(results_plot[SNR]["example_voxel"]["DenseScheme"])
+        CRLB_example_voxel = np.asarray(results_plot[SNR]["example_voxel"]["CRLB"])
+        TADRED_example_voxel = np.asarray(results_plot[SNR]["example_voxel"]["TADRED"])
                         
         fig.suptitle(
             f"{title_name}", fontsize=26
@@ -147,9 +149,9 @@ def plot_example_voxels(results_plot: dict[str, dict[str, str | np.ndarray]], sa
             G = {}
 
             for Scheme in ("DenseScheme", "CRLB", "TADRED"):
-                delta[Scheme] = results_plot[SNR]["example_acquisition_param"][Scheme][:,0] * 1e-3
-                Delta[Scheme] = results_plot[SNR]["example_acquisition_param"][Scheme][:,1] * 1e-3
-                G[Scheme] = results_plot[SNR]["example_acquisition_param"][Scheme][:,2] * 1e-3
+                delta[Scheme] = np.asarray(results_plot[SNR]["example_acquisition_param"][Scheme][:,0]) * 1e-3
+                Delta[Scheme] = np.asarray(results_plot[SNR]["example_acquisition_param"][Scheme][:,1]) * 1e-3
+                G[Scheme] = np.asarray(results_plot[SNR]["example_acquisition_param"][Scheme][:,2]) * 1e-3
 
             DenseScheme_acquisition_scheme = _calculate_b(delta["DenseScheme"],Delta["DenseScheme"],G["DenseScheme"]) * 1e-9
             CRLB_acquisition_scheme = _calculate_b(delta["CRLB"],Delta["CRLB"],G["CRLB"]) * 1e-9

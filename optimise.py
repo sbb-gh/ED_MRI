@@ -10,11 +10,12 @@ from tadred import data_processing
 from helpers import load_array
 
 def optimise_experiment(
-        input_data,
-        target_data,
-        superdesign,
+        input_data=None,
+        target_data=None,
+        superdesign=None,
         opt_protocol_size: float = 0.5,
         *,
+        presplit_data=None,
         mask=None,
         output_dir=None,
         random_state: int = 42,
@@ -65,10 +66,20 @@ def optimise_experiment(
         Dictionary containing the complete TADRED optimisation results.
     """
 
+    if presplit_data is None:
+        # Load input and target data.
+        input_data = load_array(input_data, mask=mask)
+        target_data = load_array(target_data, mask=mask)
 
-    # Load input and target data.
-    input_data = load_array(input_data, mask=mask)
-    target_data = load_array(target_data, mask=mask)
+
+        data = data_processing.split_train_val_test(
+            input_data,
+            target_data,
+            random_state=random_state,
+        )
+    else:
+        data = presplit_data
+    
 
     # Load the superdesign.
     if isinstance(superdesign, (str, Path)):
@@ -76,17 +87,30 @@ def optimise_experiment(
 
     superdesign = np.asarray(superdesign)
 
-    # Check that the paired data are compatible.
-    if input_data.shape[0] != target_data.shape[0]:
-        raise ValueError(
-            "input_data and target_data must contain the same number of samples."
-        )
+    # Check that the data are compatible with the superdesign.
+    if data is not None:
+        for split in ("train", "val", "test"):
+            input_split = data[split]
+            target_split = data[f"{split}_tar"]
 
-    if input_data.shape[-1] != len(superdesign):
-        raise ValueError(
-            "The final dimension of input_data must match the number of "
-            "acquisitions in the superdesign."
-        )
+            if input_split.shape[0] != target_split.shape[0]:
+                raise ValueError(
+                    f"{split} input and target data must contain "
+                    "the same number of samples."
+                )
+
+            if input_split.shape[-1] != len(superdesign):
+                raise ValueError(
+                    f"The final dimension of {split} input data must match "
+                    "the number of acquisitions in the superdesign."
+                )
+
+    else:
+        if input_data.shape[0] != target_data.shape[0]:
+            raise ValueError(
+                "input_data and target_data must contain the same number of samples."
+            )
+           
 
     # Set up output directory.
     if output_dir is None:
@@ -112,13 +136,6 @@ def optimise_experiment(
         "%Y-%m-%d_%H-%M-%S"
     )
 
-    #organise the data into dictionaries for passing to TADRED
-    data = data_processing.split_train_val_test(
-        input_data,
-        target_data,
-        random_state=random_state,
-    )
-
     #these are the key user-defined options
 
     n_vol_superdesign = superdesign.shape[0] #number of volumes in the oversampled superdesign    
@@ -136,7 +153,7 @@ def optimise_experiment(
     tadred_args.tadred_train_eval.feature_set_sizes_Ci = feature_set_sizes
     tadred_args.tadred_train_eval.feature_set_sizes_evaluated = feature_set_sizes
 
-    tadred_result = tadred_main.run(tadred_args, data)
+    tadred_result, tadred_model = tadred_main.run(tadred_args, data)
 
     #extract the optimised protocol
 
@@ -154,7 +171,7 @@ def optimise_experiment(
     np.savetxt(Path(output_dir, "optimised_protocol.txt"), optimised_protocol, fmt="%s")
 
 
-    return tadred_result
+    return tadred_result, tadred_model, optimised_protocol, acq_params_tadred_index
 
 
 def main():

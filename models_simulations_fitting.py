@@ -42,8 +42,7 @@ def get_acquisition_scheme(experiment, scheme_name: str, tadred_result=None):
     return acquisition_scheme
 
 class SimulationsFitting:
-    def __init__(self, SNR: float):
-        self.SNR = SNR
+    def __init__(self):
         self.set_acquisition_scheme_dense()
         self.set_acquisition_scheme_classical()
         self.create_model()
@@ -128,12 +127,12 @@ class SimulationsFitting:
 
 
 class ADC(SimulationsFitting):
-    def __init__(self, SNR: float):
+    def __init__(self):
         self.minb = 0
         self.maxb = 5
         self.minD = 0.1
         self.maxD = 3        
-        super().__init__(SNR=SNR)
+        super().__init__()
 
     def create_model(self):
         def adc_model(bval, D):
@@ -161,7 +160,6 @@ class ADC(SimulationsFitting):
             optimise_crlb_protocol(
                 model_name="ADC",
                 n_measurements=self.Ceval,
-                snr=self.SNR,
             )
         )
 
@@ -283,12 +281,12 @@ class ADC(SimulationsFitting):
 
 
 class T1INV(SimulationsFitting):
-    def __init__(self, SNR: float):
+    def __init__(self):
         self.minTi = 0.1
         self.maxTi = 7
         self.minT1 = 0.1
         self.maxT1 = 7
-        super().__init__(SNR=SNR)
+        super().__init__()
 
     def create_model(self):
         def t1_model(ti, T1, tr=7):
@@ -317,7 +315,6 @@ class T1INV(SimulationsFitting):
             optimise_crlb_protocol(
                 model_name="T1INV",
                 n_measurements=self.Ceval,
-                snr=self.SNR,
             )
         )
 
@@ -347,7 +344,7 @@ class T1INV(SimulationsFitting):
 
 class SANDI(SimulationsFitting):
 
-    def __init__(self, SNR: float):
+    def __init__(self):
 
         self.min_f_neurite = 0.01
         self.max_f_neurite = 0.99
@@ -364,9 +361,7 @@ class SANDI(SimulationsFitting):
         self.min_R_soma = 1.0
         self.max_R_soma = 12.0
 
-        super().__init__(
-            SNR=SNR
-        )
+        super().__init__()
 
 
     def create_model(self):
@@ -574,7 +569,6 @@ class SANDI(SimulationsFitting):
             optimise_crlb_protocol(
                 model_name="SANDI",
                 n_measurements=self.Ceval,
-                snr=self.SNR,
             )
         )
 

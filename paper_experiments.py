@@ -17,11 +17,15 @@ import os
 import models_simulations_fitting
 import models_simulations_plotting
 
+import torch
+
+from optimise import optimise_experiment
+
+from tadred import networks
+import apply
+
 log = logging.getLogger(__name__)
     
-
-#save_figs_dir: str = '/home/blumberg/Bureau/z_Automated_Measurement/Output/journal_paper_tst/images' # None
-#save_figs_dir: str = '/Users/paddyslator/python/ED/ED_MRI/examples/images_test' # None
 save_dir: str = os.path.join(os.getcwd(), 'results', 'paper_experiments') # None
 
 experiments = dict(
@@ -51,9 +55,9 @@ acquisition_param_name = dict(
 )
 
 num_samples: dict[str, int] = dict(
-    train=10**4,
-    val=10**3,
-    test=10**3,
+    train=10**3,
+    val=10**2,
+    test=10**2,
 )
 
 #SNR_all: tuple[int,...] = (10, 20, 30, 40, 50)
@@ -88,157 +92,210 @@ for experiment_name, experiment_cls in experiments.items():
     results_plot_transformed = dict(
         experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_dir
     )
+    
+    # --------------------------------------------------
+    # Create experiment
+    # --------------------------------------------------
+    experiment = experiment_cls()
 
-    # Initialize a dictionary to store parameters for different splits
-    fixed_params = {split: None for split in ("train", "val", "test")}
+    # --------------------------------------------------
+    # Do CRLB optimisation first - same for any SNR
+    # --------------------------------------------------
+    experiment.set_acquisition_scheme_classical()
+    
+    # --------------------------------------------------
+    # Generate fixed tissue parameters once
+    # --------------------------------------------------
+    fixed_params = {}
 
+    for split in ("train","val","test"):
+        experiment.create_params(
+            num_samples[split]
+        )
+
+        fixed_params[split] = (
+            experiment.params_for_model.copy(),
+            experiment.params_target.copy(),
+        )
+            
+    data_dense = {}
+    data_classical = {}
+            
+    for split in ("train", "val"):
+        
+        (
+            experiment.params_for_model,
+            experiment.params_target,
+        ) = fixed_params[split]
+                    
+        # Train/validation data spanning a range of SNR values
+
+        #dense acquisition scheme
+        data_dense[split] = experiment.create_data_dense(snr_range=SNR_range)
+        data_dense[split + "_tar"] = experiment.params_target     
+        
+        # CRLB / classical acquisition
+        data_classical[split] = experiment.create_data_classical(snr_range=SNR_range)
+        data_classical[split + "_tar"] = experiment.params_target
+        
+    #DenseScheme fitting and prediction using the dense acquisition scheme
+    dense_trainer = ModelFittingTrainer(
+        hidden_units=list(
+            tadred_args.network.num_units_task
+        ),
+        train_pytorch=tadred_args.train_pytorch,
+        epochs=tadred_args.tadred_train_eval.epochs,
+        no_gpu=tadred_args.other_options.no_gpu,
+    )
+
+    dense_trainer.fit(
+        train_x=data_dense["train"],
+        train_y=data_dense["train_tar"],
+        val_x=data_dense["val"],
+        val_y=data_dense["val_tar"],
+    )
+    
+    crlb_trainer = ModelFittingTrainer(
+    hidden_units=list(
+        tadred_args.network.num_units_task
+    ),
+    train_pytorch=tadred_args.train_pytorch,
+    epochs=tadred_args.tadred_train_eval.epochs,
+    no_gpu=tadred_args.other_options.no_gpu,
+    )
+
+    crlb_trainer.fit(
+        train_x=data_classical["train"],
+        train_y=data_classical["train_tar"],
+        val_x=data_classical["val"],
+        val_y=data_classical["val_tar"],
+    )
+                
+    # tadred_args.output.run_name = experiment_name + "_SNR_range_" + str(SNR_range[0]) + "_to_" + str(SNR_range[1]) + "_n_train_vox_" + str(num_samples["train"]) 
+
+    # feature_set_sizes_Ci = np.logspace(
+    #     np.log(experiment.Cbar), np.log(experiment.Ceval), 5, base=np.exp(1), dtype=int
+    # )
+    # feature_set_sizes_Ci[0] = experiment.Cbar
+    # feature_set_sizes_Ci[-1] = experiment.Ceval
+    # tadred_args.tadred_train_eval.feature_set_sizes_Ci = [
+    #     int(el) for el in feature_set_sizes_Ci
+    # ]
+    # tadred_args.tadred_train_eval.feature_set_sizes_evaluated = [int(experiment.Ceval)]
+    
+    (
+        experiment.params_for_model,
+        experiment.params_target,
+    ) = fixed_params["test"]
+
+    data_dense["test"] = (
+        experiment.create_data_dense(
+            snr_range=SNR_range
+        )
+    )
+
+    data_dense["test_tar"] = (
+        experiment.params_target
+    )
+
+    #run TADRED
+    tadred_data = {
+        "train": data_dense["train"],
+        "train_tar": data_dense["train_tar"],
+        "val": data_dense["val"],
+        "val_tar": data_dense["val_tar"],
+        "test": data_dense["test"],
+        "test_tar": data_dense["test_tar"],
+    }    
+    
+    (
+        tadred_result,
+        tadred_model,
+        tadred_protocol,
+        tadred_indices,
+    ) = optimise_experiment(
+        presplit_data=tadred_data,
+        superdesign=experiment.acquisition_scheme_dense,
+        opt_protocol_size=experiment.Ceval / experiment.Cbar,
+        output_dir=this_save_dir,
+    )
+    
+    
+    # tadred_result = tadred_main.run(tadred_args, data)
+    
+    # tadred_model = tadred_result["model"]  # if your run() returns/stores it
+    # tadred_reduced_model = networks.ReducedTADREDTaskNetwork(tadred_model)
+    # tadred_indices = models_simulations_fitting.extract_tadred_index(tadred_result)
+              
+              
     for SNR in SNR_all:
         timer_SNR = timeit.default_timer()
-        experiment = experiment_cls(SNR)
-        # data: dict = dict()        
-            
-        tadred_args.output.run_name = experiment_name + "_SNR" + str(SNR) + "_n_train_vox_" + str(num_samples["train"]) 
-
-        data = {}
-        data_classical = {}
         
-        for split in ("train", "val", "test"):
+        (
+            experiment.params_for_model,
+            experiment.params_target,
+        ) = fixed_params["test"]
 
-            if fixed_params[split] is None:
+        # ------------------------------------------
+        # Generate fixed-SNR dense test data
+        # ------------------------------------------
 
-                experiment.create_params(
-                    num_samples[split]
-                )
-
-                fixed_params[split] = (
-                    experiment.params_for_model,
-                    experiment.params_target,
-                )
-
-            (
-                experiment.params_for_model,
-                experiment.params_target,
-            ) = fixed_params[split]
-
-            if split in ("train", "val"):
-                # Train/validation data spanning a range of SNR values
-
-                #dense acquisition scheme
-                data[split] = experiment.create_data_dense(snr_range=SNR_range)
-
-                # CRLB / classical acquisition
-                data_classical[split] = experiment.create_data_classical(snr_range=SNR_range)
-            else:
-                # Final test data at a specific SNR value
-
-                #dense acquisition scheme
-                data[split] = experiment.create_data_dense(snr=SNR)
-
-                # CRLB / classical acquisition
-                data_classical[split] = experiment.create_data_classical(snr=SNR)
-
-            
-            data[split + "_tar"] = experiment.params_target     
-
-            data_classical[split + "_tar"] = experiment.params_target
-
-
-        # for split in ("train", "val", "test"):
-        #     # Generate parameters only if not already generated - ensures that the same ground truth parameters are used for each SNR
-        #     if fixed_params[split] is None:                            
-        #         # Generate parameters and store both params_for_model and params_target
-        #         experiment.create_params(num_samples[split])
-        #         fixed_params[split] = (experiment.params_for_model, experiment.params_target)
-
-        #     # Retrieve the stored parameters for the current split
-        #     experiment.params_for_model, experiment.params_target = fixed_params[split]
-                                    
-        #     data_split = experiment.create_data_dense()
-        #     data[split] = data_split
-        #     data[split + "_tar"] = experiment.params_target
-                                   
-
-        #     if split == "test":
-        #         data_classical_test = experiment.create_data_classical()
-
-        feature_set_sizes_Ci = np.logspace(
-            np.log(experiment.Cbar), np.log(experiment.Ceval), 5, base=np.exp(1), dtype=int
+        dense_test = experiment.create_data_dense(
+            snr=SNR
         )
-        feature_set_sizes_Ci[0] = experiment.Cbar
-        feature_set_sizes_Ci[-1] = experiment.Ceval
-        tadred_args.tadred_train_eval.feature_set_sizes_Ci = [
-            int(el) for el in feature_set_sizes_Ci
+
+        # ------------------------------------------
+        # Dense prediction
+        # ------------------------------------------
+
+        dense_prediction = dense_trainer.predict(
+            dense_test
+        )
+
+        # ------------------------------------------
+        # CRLB fixed-SNR data + prediction
+        # ------------------------------------------
+
+        data_classical["test"] = experiment.create_data_classical(
+            snr=SNR
+        )
+
+        crlb_prediction = crlb_trainer.predict(
+            data_classical["test"]
+        )
+
+        # ------------------------------------------
+        # TADRED fixed-SNR prediction
+        # ------------------------------------------
+
+        tadred_indices = (
+            models_simulations_fitting
+            .extract_tadred_index(
+                tadred_result
+            )
+        )
+
+        tadred_test = dense_test[
+            :,
+            tadred_indices,
         ]
-        tadred_args.tadred_train_eval.feature_set_sizes_evaluated = [int(experiment.Ceval)]
-      
-        tadred_result = tadred_main.run(tadred_args, data)
 
-        #CRLB fitting and prediction using the classical acquisition scheme
-        crlb_trainer = ModelFittingTrainer(
-            hidden_units=list(
-                tadred_args.network.num_units_task
-            ),
-            train_pytorch=tadred_args.train_pytorch,
-            epochs=tadred_args.tadred_train_eval.epochs,
-            no_gpu=tadred_args.other_options.no_gpu,
-        )
-
-        crlb_trainer.fit(
-            train_x=data_classical["train"],
-            train_y=data_classical["train_tar"],
-            val_x=data_classical["val"],
-            val_y=data_classical["val_tar"],
-        )
-
-        crlb_prediction = (
-            crlb_trainer.predict(
-                data_classical["test"]
+        tadred_prediction = apply.apply_trained_model(
+            tadred_test,
+            tadred_model,
             )
-        )
-
-        #DenseScheme fitting and prediction using the dense acquisition scheme
-        dense_trainer = ModelFittingTrainer(
-            hidden_units=list(
-                tadred_args.network.num_units_task
-            ),
-            train_pytorch=tadred_args.train_pytorch,
-            epochs=tadred_args.tadred_train_eval.epochs,
-            no_gpu=tadred_args.other_options.no_gpu,
-        )
-
-        dense_trainer.fit(
-            train_x=data["train"],
-            train_y=data["train_tar"],
-            val_x=data["val"],
-            val_y=data["val_tar"],
-        )
-
-        dense_prediction = (
-            dense_trainer.predict(
-                data["test"]
-            )
-        )
-
+    
         predictions = dict(
             CRLB=crlb_prediction,
             DenseScheme=dense_prediction,
-            TADRED=tadred_result[
-                experiment.Ceval
-            ]["test_output"],
-        )
-        
-        
-        # predictions = dict(
-        #     CRLB=experiment.fit_and_prediction(data_classical_test, "classical"),
-        #     DenseScheme=experiment.fit_and_prediction(data["test"], "dense"),
-        #     TADRED=tadred_result[experiment.Ceval]["test_output"],
-        # )
-              
+            TADRED=tadred_prediction,
+        )    
+
         #example voxel for plotting
         example_voxel = dict(
-            DenseScheme=data["test"][0,:],
+            DenseScheme=data_dense["test"][0,:],
             CRLB=data_classical["test"][0,:],            
-            TADRED=data["test"][0,models_simulations_fitting.extract_tadred_index(tadred_result)],
+            TADRED=tadred_test[0,:],
         ) 
         #example part of the acquisition scheme for plotting, e.g. b-value, TI
         example_acquisition_param = dict(
@@ -248,7 +305,7 @@ for experiment_name, experiment_cls in experiments.items():
         )                              
         
                         
-        results_plot[SNR] = dict(target=data["test_tar"], 
+        results_plot[SNR] = dict(target=data_dense["test_tar"], 
                                  predictions=predictions,
                                  example_acquisition_param=example_acquisition_param,
                                  example_voxel=example_voxel,
@@ -286,7 +343,7 @@ for experiment_name, experiment_cls in experiments.items():
             experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_dir
         )
         
-        results_plot_transformed[SNR] = dict(target=experiment.params_target_to_model_input_params(data["test_tar"]), 
+        results_plot_transformed[SNR] = dict(target=experiment.params_target_to_model_input_params(data_dense["test_tar"]), 
                                     predictions=predictions_transformed,)
             
         results_plot_transformed["parameter_labels"] =  model_parameters[experiment_name]
@@ -310,7 +367,7 @@ for experiment_name, experiment_cls in experiments.items():
                 sim_data_dir,
                 f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_all_simulated_data.npy'  # Include the .npy extension
             ),
-            data  # This is the object to be saved
+            data_dense  # This is the object to be saved
         )
         #also save the individual parts of the simulated data in separate files for easier access
         for split in ("train", "val", "test"):
@@ -319,7 +376,7 @@ for experiment_name, experiment_cls in experiments.items():
                     sim_data_dir,
                     f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_{split}_simulated_signals.npy'  # Include the .npy extension
                 ),
-                data[split]  # This is the object to be saved
+                data_dense[split]  # This is the object to be saved
             )
         #and save the individual parts of the simulated target parameters in separate files for easier access
         for split in ("train", "val", "test"):
@@ -328,7 +385,7 @@ for experiment_name, experiment_cls in experiments.items():
                     sim_data_dir,
                     f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_{split}_simulated_gt_params.npy'  # Include the .npy extension
                 ),
-                data[split + "_tar"]  # This is the object to be saved
+                data_dense[split + "_tar"]  # This is the object to be saved
             )
 
     #create a directory for the figures                

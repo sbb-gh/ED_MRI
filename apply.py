@@ -5,7 +5,8 @@ import numpy as np
 
 from tadred import inference
 
-
+    
+    
 def apply_trained_model(
     input_data,
     trained_model,
@@ -27,8 +28,8 @@ def apply_trained_model(
         NIfTI input should have shape:
             (X, Y, Z, n_acquisitions)
 
-    trained_model : str or pathlib.Path
-        Path to the trained TADRED network checkpoint.
+    trained_model : torch.nn.Module or str or pathlib.Path
+        Trained TADRED model, or path to a saved checkpoint.
 
     mask : np.ndarray or str or pathlib.Path, optional
         Optional 3D mask. Only voxels where mask > 0 are processed.
@@ -124,15 +125,8 @@ def apply_trained_model(
     # TADRED inference
     # ---------------------------------------------------------
 
-    predictions = inference.apply_trained_task_network(
-        trained_model,
-        model_input,
-    )
-
-    if hasattr(predictions, "cpu"):
-        predictions = predictions.cpu().numpy()
-
-    predictions = np.asarray(predictions)
+    # Live trained model
+    predictions = inference.apply_trained_task_network(trained_model,model_input)
 
     # ---------------------------------------------------------
     # Reconstruct image
