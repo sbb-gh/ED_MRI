@@ -7,7 +7,7 @@ import numpy as np
 from tadred import tadred_main, utils
 from tadred import data_processing
 
-from helpers import load_array
+from edmri.helpers import load_array
 
 def optimise_experiment(
         input_data=None,

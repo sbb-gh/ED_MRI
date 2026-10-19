@@ -6,9 +6,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 
-from crlb_optimisation import optimise_crlb_protocol
+from edmri.crlb_optimisation import optimise_crlb_protocol
 
-from models.sandi import _calculate_b, sandi_signal
+from edmri.models.sandi import _calculate_b, sandi_signal
 
 import torch
 
@@ -518,7 +518,7 @@ class SANDI(SimulationsFitting):
         ])
 
         G_values = np.array([
-            50, 100, 150, 200, 250, 300
+            0, 50, 100, 150, 200, 250, 300
         ])
                
 

@@ -4,7 +4,7 @@ import torch
 from scipy.optimize import brentq
 from scipy.special import jv
 
-from models.sandi import sandi_signal 
+from .models.sandi import sandi_signal, _calculate_b
 
 # ============================================================
 # Generic CRLB optimisation
@@ -179,7 +179,7 @@ def _get_adc_config(
 ):
 
     min_b = 0.0
-    max_b = 5.0
+    max_b = 3.0
 
     min_D = 0.1
     max_D = 3.0
@@ -516,83 +516,68 @@ def _decode_sandi_protocol(
     raw_delta,
     raw_Delta,
     raw_G,
-    delta_range=(
-        5e-3,
-        40e-3,
-    ),
-    Delta_range=(
-        15e-3,
-        80e-3,
-    ),
-    G_range=(
-        0.01,
-        0.300,
-    ),
-    min_gap=2e-3,
+    delta_range=(8e-3, 30e-3),
+    Delta_range=(20e-3, 80e-3),
+    G_range=(0.0, 0.300),
+    min_gap=5e-3,
+    max_b=10e9,  # 10 ms/um^2 = 1e10 s/m^2
 ):
     """
     Convert unconstrained optimisation variables into a
-    physically valid PGSE protocol.
+    physically valid PGSE protocol with a maximum b-value.
     """
 
-    delta_min, delta_max = (
-        delta_range
-    )
-
-    Delta_min, Delta_max = (
-        Delta_range
-    )
-
-    G_min, G_max = (
-        G_range
-    )
+    delta_min, delta_max = delta_range
+    Delta_min, Delta_max = Delta_range
+    G_min, G_max = G_range
 
     delta = (
         delta_min
-        + torch.sigmoid(
-            raw_delta
-        )
-        * (
-            delta_max
-            - delta_min
-        )
+        + torch.sigmoid(raw_delta) * (delta_max - delta_min)
     )
 
     minimum_Delta = torch.maximum(
-        torch.full_like(
-            delta,
-            Delta_min,
-        ),
+        torch.full_like(delta, Delta_min),
         delta + min_gap,
     )
 
     Delta = (
         minimum_Delta
-        + torch.sigmoid(
-            raw_Delta
-        )
-        * (
-            Delta_max
-            - minimum_Delta
-        )
+        + torch.sigmoid(raw_Delta)
+        * (Delta_max - minimum_Delta)
     )
+
+    # Maximum gradient amplitude allowed by the b-value limit
+    # b is proportional to G^2 for fixed delta and Delta.
+    b_at_Gmax = _calculate_b(
+        delta,
+        Delta,
+        torch.full_like(delta, G_max),
+    )
+
+    G_bmax = G_max * torch.sqrt(
+        max_b / b_at_Gmax
+    )
+
+    maximum_G = torch.minimum(
+        torch.full_like(delta, G_max),
+        G_bmax,
+    )
+
+    # Enforce the minimum gradient amplitude.
+    # The timing ranges must permit G >= G_min at b <= max_b.
+    if torch.any(maximum_G < G_min):
+        raise ValueError(
+            "Timing parameters cannot satisfy the b-value limit "
+            "with the specified minimum gradient amplitude."
+        )
 
     G = (
         G_min
-        + torch.sigmoid(
-            raw_G
-        )
-        * (
-            G_max
-            - G_min
-        )
+        + torch.sigmoid(raw_G) * (maximum_G - G_min)
     )
 
-    return (
-        delta,
-        Delta,
-        G,
-    )
+    return delta, Delta, G
 
 
 def _get_sandi_config(
@@ -623,12 +608,12 @@ def _get_sandi_config(
     def create_raw_protocol():
 
         return [
-            torch.zeros(
+            torch.randn(
                 n_measurements,
                 dtype=torch.float64,
                 requires_grad=True,
             ),
-            torch.zeros(
+            torch.randn(
                 n_measurements,
                 dtype=torch.float64,
                 requires_grad=True,

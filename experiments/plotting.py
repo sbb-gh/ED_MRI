@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from models.sandi import _calculate_b
+from edmri.models.sandi import _calculate_b
 
 _calculate_b
 

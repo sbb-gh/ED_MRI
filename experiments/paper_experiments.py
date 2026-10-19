@@ -6,34 +6,40 @@ from pathlib import Path
 
 import sys
 
-from model_fitting_network import ModelFittingTrainer
+from edmri import optimise_experiment, apply_trained_model, optimise_crlb_protocol
+
+from edmri.model_fitting import ModelFittingTrainer
 sys.path.append('/Users/paddyslator/python/ED/tadred')
+
+from edmri import inference
 
 import numpy as np
 from tadred import tadred_main, utils
 
 import os
 
-import models_simulations_fitting
-import models_simulations_plotting
+import edmri.model_fitting
+import experiments.plotting
 
 import torch
 
-from optimise import optimise_experiment
+from edmri.optimise import optimise_experiment
 
 from tadred import networks
-import apply
+import edmri.inference
+
+import edmri.simulation as simulation
 
 log = logging.getLogger(__name__)
     
 save_dir: str = os.path.join(os.getcwd(), 'results', 'paper_experiments') # None
 
-experiments = dict(
+experiments_to_run = dict(
     #NODDI_model=models_simulations_fitting.NODDI,
     #VERDICT_model=models_simulations_fitting.VERDICT,
-    SANDI_model=models_simulations_fitting.SANDI,
-    ADC_model=models_simulations_fitting.ADC,
-    T1inv_model=models_simulations_fitting.T1INV,
+    SANDI_model=edmri.simulation.SANDI,
+    ADC_model=edmri.simulation.ADC,
+    T1inv_model=edmri.simulation.T1INV,
 )
 
 #hard code the model parameters and units for plot labels 
@@ -55,13 +61,13 @@ acquisition_param_name = dict(
 )
 
 num_samples: dict[str, int] = dict(
-    train=10**3,
-    val=10**2,
-    test=10**2,
+    train=10**4,
+    val=10**3,
+    test=10**3,
 )
 
 #SNR_all: tuple[int,...] = (10, 20, 30, 40, 50)
-SNR_all: tuple[int,...] = (10, 20)
+SNR_all: tuple[int,...] = (10, 20, 30, 40, 50) # range of SNR values for testing
 
 SNR_range = (10,50) # range of SNR values for training data
 
@@ -79,7 +85,7 @@ tadred_args.other_options.save_output = True
 tadred_args.output.out_base = save_dir
             
 
-for experiment_name, experiment_cls in experiments.items():
+for experiment_name, experiment_cls in experiments_to_run.items():
     #save directory for the trained model and results    
     this_save_dir = os.path.join(save_dir, experiment_name)
     os.makedirs(this_save_dir, exist_ok=True)
@@ -269,7 +275,7 @@ for experiment_name, experiment_cls in experiments.items():
         # ------------------------------------------
 
         tadred_indices = (
-            models_simulations_fitting
+            edmri.simulation
             .extract_tadred_index(
                 tadred_result
             )
@@ -280,7 +286,7 @@ for experiment_name, experiment_cls in experiments.items():
             tadred_indices,
         ]
 
-        tadred_prediction = apply.apply_trained_model(
+        tadred_prediction = inference.apply_trained_model(
             tadred_test,
             tadred_model,
             )
@@ -394,13 +400,13 @@ for experiment_name, experiment_cls in experiments.items():
     log.info("Output figures directory:", figure_dir)
     
     #plot the barplots using the normalised data            
-    models_simulations_plotting.plot_barplots(results_plot)
+    experiments.plotting.plot_barplots(results_plot)
     
     #plot the predicted vs. ground truth plots using the untransformed data            
-    models_simulations_plotting.plot_predicted_vs_target_params(results_plot_transformed)
+    experiments.plotting.plot_predicted_vs_target_params(results_plot_transformed)
         
     #plot the signal from one voxel for each acquistion scheme
-    models_simulations_plotting.plot_example_voxels(results_plot)
+    experiments.plotting.plot_example_voxels(results_plot)
 
         
     
