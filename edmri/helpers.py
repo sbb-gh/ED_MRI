@@ -3,6 +3,10 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
+import hashlib
+import json
+
+from omegaconf import OmegaConf
 
 def load_array(data, mask=None):
     """
@@ -230,3 +234,68 @@ def extract_optimised_measurements(
             )
 
     return output, indices
+
+
+def get_config_hash(config):
+    """Generate a reproducible hash from an OmegaConf configuration."""
+
+    config_dict = OmegaConf.to_container(
+        config,
+        resolve=True,
+    )
+
+    # Exclude output location from experiment identity
+    config_dict.pop("output", None)
+
+    config_json = json.dumps(
+        config_dict,
+        sort_keys=True,
+    )
+
+    return hashlib.sha256(
+        config_json.encode()
+    ).hexdigest()[:12]
+
+
+def load_existing_results(experiment_dir):
+    """
+    Load results from a previously completed ED_MRI experiment.
+
+    Parameters
+    ----------
+    experiment_dir : str or Path
+        Directory containing the experiment outputs.
+
+    Returns
+    -------
+    results : dict
+        Previously saved TADRED results.
+    trained_model : Path
+        Path to the saved trained network checkpoint.
+    """
+
+    experiment_dir = Path(experiment_dir)
+
+    results_files = list(experiment_dir.rglob("*_all.npy"))
+    model_files = list(
+        experiment_dir.rglob("*_trained_task_network.pt")
+    )
+
+    if len(results_files) != 1:
+        raise FileNotFoundError(
+            f"Expected one results file in {experiment_dir}, "
+            f"found {len(results_files)}."
+        )
+
+    if len(model_files) != 1:
+        raise FileNotFoundError(
+            f"Expected one trained model in {experiment_dir}, "
+            f"found {len(model_files)}."
+        )
+
+    results = np.load(results_files[0], allow_pickle=True)
+
+    if isinstance(results, np.ndarray):
+        results = results.item()
+
+    return results, model_files[0]

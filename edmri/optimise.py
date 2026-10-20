@@ -7,7 +7,8 @@ import numpy as np
 from tadred import tadred_main, utils
 from tadred import data_processing
 
-from edmri.helpers import load_array
+from .helpers import load_array
+from .helpers import load_existing_results
 
 def optimise_experiment(
         input_data=None,
@@ -20,6 +21,8 @@ def optimise_experiment(
         output_dir=None,
         random_state: int = 42,
         n_iterations_tadred: int = 5,
+        config_hash=None,
+        force=False,
         **kwargs,
 ):
     """
@@ -110,16 +113,7 @@ def optimise_experiment(
             raise ValueError(
                 "input_data and target_data must contain the same number of samples."
             )
-           
-
-    # Set up output directory.
-    if output_dir is None:
-        output_dir = Path("edmri_output")
-    else:
-        output_dir = Path(output_dir)
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-
+        
 
     # Neural network hyperparameters of TADRED
     # TODO: move to config file
@@ -166,9 +160,9 @@ def optimise_experiment(
     # Chosen acquisition parameters
     optimised_protocol = superdesign[acq_params_tadred_index]
 
-    np.savetxt(Path(output_dir, "optimised_indices.txt"),acq_params_tadred_index,fmt="%d")
+    np.savetxt(Path(output_dir, tadred_args.output.proj_name, "optimised_indices.txt"),acq_params_tadred_index,fmt="%d")
     
-    np.savetxt(Path(output_dir, "optimised_protocol.txt"), optimised_protocol, fmt="%s")
+    np.savetxt(Path(output_dir, tadred_args.output.proj_name, "optimised_protocol.txt"), optimised_protocol, fmt="%s")
 
 
     return tadred_result, tadred_model, optimised_protocol, acq_params_tadred_index

@@ -1,0 +1,40 @@
+# ============================================================
+# Input data
+# ============================================================
+
+data:
+  input: data/signals.npy
+  target: data/parameters.npy
+  superdesign: data/superdesign.txt
+  mask: null                  # Optional NIfTI mask
+
+# ============================================================
+# Acquisition optimisation
+# ============================================================
+
+optimisation:
+  method: tadred             # CRLB in future?
+  protocol_size: 0.25        # Fraction of measurements to retain
+  n_iterations: 5            # Number of TADRED reduction stages
+  random_state: 42
+
+# ============================================================
+# TADRED training
+# ============================================================
+
+training:
+  network:
+    hidden_units_score: [1000, 1000]
+    hidden_units_task: [1000, 1000]
+
+  optimiser:
+    learning_rate: 0.001
+    batch_size: 256
+
+# ============================================================
+# Output
+# ============================================================
+
+output:
+  directory: results/experiment1
+  force: false

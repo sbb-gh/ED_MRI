@@ -60,10 +60,12 @@ acquisition_param_name = dict(
     SANDI_model=r'b-value (s $\mu$m$^{-2}$)',
 )
 
+n_train_vox = 10**3
+
 num_samples: dict[str, int] = dict(
-    train=10**4,
-    val=10**3,
-    test=10**3,
+    train=int(n_train_vox),
+    val=int(n_train_vox * 0.1),
+    test=int(n_train_vox * 0.1),
 )
 
 #SNR_all: tuple[int,...] = (10, 20, 30, 40, 50)
@@ -375,6 +377,26 @@ for experiment_name, experiment_cls in experiments_to_run.items():
             ),
             data_dense  # This is the object to be saved
         )
+
+        #save the acquisition schemes as txt files for easier access
+        np.savetxt(
+            Path(
+                sim_data_dir,
+                f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_protocol_superdesign.txt'  # Include the .txt extension
+            ),
+            experiment.acquisition_scheme_dense,  # This is the object to be saved
+            fmt='%.6f'  # Format for floating-point numbers
+        )
+        np.savetxt(
+            Path(
+                sim_data_dir,
+                f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_protocol_classical.txt'  # Include the .txt extension
+            ),
+            experiment.acquisition_scheme_classical,  # This is the object to be saved              
+        fmt='%.6f'  # Format for floating-point numbers
+        )   
+         
+
         #also save the individual parts of the simulated data in separate files for easier access
         for split in ("train", "val", "test"):
             np.save(
@@ -411,4 +433,4 @@ for experiment_name, experiment_cls in experiments_to_run.items():
         
     
 
-    print("EOF")
+    print("Finished protocol optimisation experiment:", experiment_name)
