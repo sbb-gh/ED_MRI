@@ -21,8 +21,6 @@ def optimise_experiment(
         output_dir=None,
         random_state: int = 42,
         n_iterations_tadred: int = 5,
-        config_hash=None,
-        force=False,
         **kwargs,
 ):
     """
@@ -126,9 +124,7 @@ def optimise_experiment(
     # Base filename for saving the trained model and results
     tadred_args.output.out_base = output_dir
 
-    tadred_args.output.proj_name = datetime.datetime.now().strftime(
-        "%Y-%m-%d_%H-%M-%S"
-    )
+    tadred_args.output.proj_name = "results" 
 
     #these are the key user-defined options
 

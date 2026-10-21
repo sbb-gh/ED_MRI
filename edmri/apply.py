@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import nibabel as nib
@@ -7,9 +8,9 @@ from tadred import inference
 
     
     
-def apply_trained_model(
+def apply_task_network(
     input_data,
-    trained_model,
+    trained_task_network,
     *,
     mask=None,
     output_file=None,
@@ -28,7 +29,7 @@ def apply_trained_model(
         NIfTI input should have shape:
             (X, Y, Z, n_acquisitions)
 
-    trained_model : torch.nn.Module or str or pathlib.Path
+    trained_task_network : torch.nn.Module or str or pathlib.Path
         Trained TADRED model, or path to a saved checkpoint.
 
     mask : np.ndarray or str or pathlib.Path, optional
@@ -126,7 +127,7 @@ def apply_trained_model(
     # ---------------------------------------------------------
 
     # Live trained model
-    predictions = inference.apply_trained_task_network(trained_model,model_input)
+    predictions = inference.apply_trained_task_network(trained_task_network,model_input)
 
     # ---------------------------------------------------------
     # Reconstruct image
@@ -163,6 +164,7 @@ def apply_trained_model(
     if output_file is not None:
 
         output_file = Path(output_file)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
 
         if input_is_nifti:
             output_img = nib.Nifti1Image(
@@ -183,3 +185,64 @@ def apply_trained_model(
             )
 
     return output
+
+
+
+def main():
+    """Command-line interface for applying a trained task network."""
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "Apply a trained TADRED task network to new MRI data acquired with the corresponding optimised protocol."
+        )
+    )
+
+    parser.add_argument(
+    "input_data",
+    type=Path,
+    help="Path to input data acquired with optimised protocol (.npy, .nii, or .nii.gz).",
+    )
+
+    parser.add_argument(
+        "trained_task_network",
+        type=Path,
+        help="Path to the TADRED trained task network (.pt).",
+    )
+
+    parser.add_argument(
+        "--mask",
+        type=Path,
+        default=None,
+        help=(
+            "Optional 3D NIfTI mask. Inference is performed only on voxels where mask > 0. "
+            "Voxels where mask <= 0 are ignored."
+        ),
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("edmri_output"),
+        help="Directory for inference outputs (default: edmri_output).",
+    )
+
+    parser.add_argument(
+        "--random-state",
+        type=int,
+        default=42,
+        help="Random seed for train/validation/test splitting (default: 42).",
+    )
+
+    args = parser.parse_args()
+
+    apply_task_network(
+        input_data=args.input_data,
+        trained_task_network=args.trained_task_network,
+        mask=args.mask,
+        output_dir=args.output_dir,
+        random_state=args.random_state,
+    )
+
+
+if __name__ == "__main__":
+    main()

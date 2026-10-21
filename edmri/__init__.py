@@ -6,11 +6,11 @@ Cramér-Rao lower bounds and machine learning.
 """
 
 from .optimise import optimise_experiment
-from .inference import apply_trained_model
+from .apply import apply_task_network
 from .crlb_optimisation import optimise_crlb_protocol
 
 __all__ = [
     "optimise_experiment",
-    "apply_trained_model",
+    "apply_task_network",
     "optimise_crlb_protocol",
 ]

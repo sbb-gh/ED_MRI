@@ -1,3 +1,6 @@
+# Default configuration for edmri-optimise.
+# Copy this file and modify the paths for your optimisation experiments.
+
 # ============================================================
 # Input data
 # ============================================================
@@ -36,5 +39,5 @@ training:
 # ============================================================
 
 output:
-  directory: results/experiment1
+  directory: results/optimisation_results
   force: false

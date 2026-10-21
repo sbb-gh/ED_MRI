@@ -1,0 +1,11 @@
+# Default configuration for edmri-apply.
+# Copy this file and modify the paths for your experiments.
+
+data:
+  input: results/paper_experiments/SANDI_model/data/SANDI_model_SNR30_train_simulated_signals.npy
+  mask: null
+
+task_network: results/optimisation_results/54f2fa19c840/results/trained_task_network.pt
+
+output:
+  directory: results/application_results
