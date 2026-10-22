@@ -123,7 +123,7 @@ pip install -e .
 and then the additional dependencies
 
 ```bash
-pip install notebook matplotlib scipy
+pip install notebook matplotlib scipy nibabel
 ```
 
 

@@ -6,12 +6,12 @@ from pathlib import Path
 
 import sys
 
-from edmri import optimise_experiment, apply_trained_model, optimise_crlb_protocol
+from edmri import optimise_experiment, apply_task_network, optimise_crlb_protocol
 
 from edmri.model_fitting import ModelFittingTrainer
 sys.path.append('/Users/paddyslator/python/ED/tadred')
 
-from edmri import inference
+from edmri import apply
 
 import numpy as np
 from tadred import tadred_main, utils
@@ -26,7 +26,7 @@ import torch
 from edmri.optimise import optimise_experiment
 
 from tadred import networks
-import edmri.inference
+import edmri.apply
 
 import edmri.simulation as simulation
 
@@ -288,7 +288,7 @@ for experiment_name, experiment_cls in experiments_to_run.items():
             tadred_indices,
         ]
 
-        tadred_prediction = inference.apply_trained_model(
+        tadred_prediction = apply_task_network(
             tadred_test,
             tadred_model,
             )
