@@ -1,115 +1,149 @@
 """ (c) Stefano B. Blumberg and Paddy J. Slator, do not redistribute or modify"""
+import argparse
 import logging
 import timeit
-
 from pathlib import Path
 
-import sys
-
-from edmri import optimise_experiment, apply_task_network, optimise_crlb_protocol
-
-from edmri.model_fitting import ModelFittingTrainer
-sys.path.append('/Users/paddyslator/python/ED/tadred')
-
-from edmri import apply
-
 import numpy as np
-from tadred import tadred_main, utils
+from omegaconf import OmegaConf
 
-import os
-
-import edmri.model_fitting
-import experiments.plotting
-
-import torch
-
+from edmri import simulation
 from edmri.optimise import optimise_experiment
+from edmri.apply import apply_task_network
+from edmri.model_fitting import ModelFittingTrainer
+from tadred import utils
 
-from tadred import networks
-import edmri.apply
-
-import edmri.simulation as simulation
+from experiments import plotting
 
 log = logging.getLogger(__name__)
-    
-save_dir: str = os.path.join(os.getcwd(), 'results', 'paper_experiments') # None
 
-experiments_to_run = dict(
-    #NODDI_model=models_simulations_fitting.NODDI,
-    #VERDICT_model=models_simulations_fitting.VERDICT,
-    SANDI_model=edmri.simulation.SANDI,
-    ADC_model=edmri.simulation.ADC,
-    T1inv_model=edmri.simulation.T1INV,
-)
+EXPERIMENT_CLASSES = {
+    "SANDI": simulation.SANDI,
+    "ADC": simulation.ADC,
+    "T1INV": simulation.T1INV,
+}
 
-#hard code the model parameters and units for plot labels 
-model_parameters = dict(
-    #NODDI_model=('ODI','fstickinwatson', 'fiso', 'fwatson', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'), these are the pre-converted parameters
-    #NODDI_model=('ODI','f$_{stick}$', 'f$_{ball}$', 'f$_{zeppelin}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
-    #VERDICT_model=('R$_{sphere}$ ($\mu$m)', 'stick d$_{par}$ ($\mu$m s$^{-1}$)', 'f$_{sphere}$', 'f$_{ball}$','f$_{stick}$', 'n$_{x}$', 'n$_{y}$', 'n$_{z}$'),
-    ADC_model=(r'ADC ($\mu$m$^2$ ms$^{-1}$)',),
-    T1inv_model=('T1 (s)',),
-    SANDI_model=('f$_{neurite}$','f$_{soma}$',r'D$_{neurite}$ ($\mu$m$^2$ ms$^{-1}$)',r'D$_{extra}$ ($\mu$m$^2$ ms$^{-1}$)',r'R$_{soma}$ ($\mu$m)',),
-)
-
-acquisition_param_name = dict(
-    #NODDI_model='b-value (s $\mu$m$^{-2}$)',
-    # VERDICT_model='b-value (s $\mu$m$^{-2}$)',
-    ADC_model=r'b-value (s $\mu$m$^{-2}$)',
-    T1inv_model='TI (s)',
-    SANDI_model=r'b-value (s $\mu$m$^{-2}$)',
-)
-
-n_train_vox = 10**3
-
-num_samples: dict[str, int] = dict(
-    train=int(n_train_vox),
-    val=int(n_train_vox * 0.1),
-    test=int(n_train_vox * 0.1),
-)
-
-#SNR_all: tuple[int,...] = (10, 20, 30, 40, 50)
-SNR_all: tuple[int,...] = (10, 20, 30, 40, 50) # range of SNR values for testing
-
-SNR_range = (10,50) # range of SNR values for training data
-
-
-
-
-# Neural network hyperparameters of the method TADRED
-tadred_args = utils.load_base_args()
-tadred_args.network.num_units_score: list[int] = [1000, 1000]
-tadred_args.network.num_units_task: list[int] = [1000, 1000]
-tadred_args.other_options.save_output = True
-#tadred_args.tadred_train_eval.epochs = 50
-
-#base filename for saving the trained model and results
-tadred_args.output.out_base = save_dir
-            
-
-for experiment_name, experiment_cls in experiments_to_run.items():
-    #save directory for the trained model and results    
-    this_save_dir = os.path.join(save_dir, experiment_name)
-    os.makedirs(this_save_dir, exist_ok=True)
-    tadred_args.output.proj_name = experiment_name
-    
-    results_plot = dict(
-        experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_dir
+def main():
+    parser = argparse.ArgumentParser(
+        description="Run simulated MRI protocol optimisation experiments."
     )
-    
-    results_plot_transformed = dict(
-        experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_dir
+    parser.add_argument(
+        "--config",
+        default="edmri/conf/paper_experiments_default.yaml",
     )
-    
+
+    args, overrides = parser.parse_known_args()
+
+    config = OmegaConf.merge(
+        OmegaConf.load(args.config),
+        OmegaConf.from_dotlist(overrides),
+    )
+
+    output_dir = Path(config.output.directory)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for model_name, enabled in config.experiments.items():
+        if not enabled:
+            continue
+
+        if model_name not in EXPERIMENT_CLASSES:
+            raise ValueError(f"Unknown experiment: {model_name}")
+
+        run_experiment(
+            experiment_name=model_name,
+            experiment_cls=EXPERIMENT_CLASSES[model_name],
+            config=config,
+        )
+
+
+def run_experiment(experiment_name, experiment_cls, config):
+    output_dir = Path(config.output.directory) / experiment_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    OmegaConf.save(
+        config,
+        output_dir / "config.yaml",
+        resolve=True,
+    )
+
+    num_samples = {
+        "train": config.simulation.n_train,
+        "val": config.simulation.n_val,
+        "test": config.simulation.n_test,
+    }
+
+    SNR_range = tuple(config.simulation.snr_train_range)
+    SNR_all = list(config.simulation.snr_test_values)
+
+    tadred_args = utils.load_base_args()
+    tadred_args.network.num_units_score = list(
+        config.tadred.score_hidden_units
+    )
+    tadred_args.network.num_units_task = list(
+        config.tadred.task_hidden_units
+    )
+    tadred_args.other_options.save_output = (
+        config.tadred.save_output
+    )
+
+    if config.training.epochs is not None:
+        tadred_args.tadred_train_eval.epochs = (
+            config.training.epochs
+        )
+
     # --------------------------------------------------
     # Create experiment
     # --------------------------------------------------
+
     experiment = experiment_cls()
 
     # --------------------------------------------------
     # Do CRLB optimisation first - same for any SNR
     # --------------------------------------------------
     experiment.set_acquisition_scheme_classical()
+    
+
+    tadred_args.output.out_base = output_dir
+
+        
+    # experiments_to_run = dict(
+    #     #NODDI_model=models_simulations_fitting.NODDI,
+    #     #VERDICT_model=models_simulations_fitting.VERDICT,
+    #     #SANDI_model=edmri.simulation.SANDI,
+    #     ADC_model=edmri.simulation.ADC,
+    #     #T1inv_model=edmri.simulation.T1INV,
+    # )
+
+    #hard code the model parameters and units for plot labels 
+    model_parameters = {
+        "ADC": (r"ADC ($\mu$m$^2$ ms$^{-1}$)",),
+        "T1INV": ("T1 (s)",),
+        "SANDI": (
+            r"f$_{neurite}$",
+            r"f$_{soma}$",
+            r"D$_{neurite}$ ($\mu$m$^2$ ms$^{-1}$)",
+            r"D$_{extra}$ ($\mu$m$^2$ ms$^{-1}$)",
+            r"R$_{soma}$ ($\mu$m)",
+        ),
+    }
+
+    acquisition_param_name = {
+        "ADC": r"b-value (s $\mu$m$^{-2}$)",
+        "T1INV": "TI (s)",
+        "SANDI": r"b-value (s $\mu$m$^{-2}$)",
+    }
+    
+    tadred_args.output.proj_name = experiment_name
+    
+    results_plot = dict(
+        experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=output_dir
+    )
+    
+    results_plot_transformed = dict(
+        experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=output_dir
+    )
+
+   
     
     # --------------------------------------------------
     # Generate fixed tissue parameters once
@@ -214,7 +248,25 @@ for experiment_name, experiment_cls in experiments_to_run.items():
         "val_tar": data_dense["val_tar"],
         "test": data_dense["test"],
         "test_tar": data_dense["test_tar"],
-    }    
+    }   
+
+    tadred_args = utils.load_base_args()
+
+    tadred_args.network.num_units_score = list(
+        config.tadred.score_hidden_units
+    )
+    tadred_args.network.num_units_task = list(
+        config.tadred.task_hidden_units
+    )
+    tadred_args.other_options.save_output = (
+        config.tadred.save_output
+    )
+    tadred_args.other_options.no_gpu = config.training.no_gpu
+
+    if config.training.epochs is not None:
+        tadred_args.tadred_train_eval.epochs = config.training.epochs
+
+    tadred_args.output.proj_name = experiment_name 
     
     (
         tadred_result,
@@ -225,7 +277,9 @@ for experiment_name, experiment_cls in experiments_to_run.items():
         presplit_data=tadred_data,
         superdesign=experiment.acquisition_scheme_dense,
         opt_protocol_size=experiment.Ceval / experiment.Cbar,
-        output_dir=this_save_dir,
+        output_dir=output_dir,
+        tadred_args=tadred_args,
+        n_iterations_tadred=config.tadred.n_iterations,
     )
     
     
@@ -234,8 +288,14 @@ for experiment_name, experiment_cls in experiments_to_run.items():
     # tadred_model = tadred_result["model"]  # if your run() returns/stores it
     # tadred_reduced_model = networks.ReducedTADREDTaskNetwork(tadred_model)
     # tadred_indices = models_simulations_fitting.extract_tadred_index(tadred_result)
-              
-              
+            
+    results_plot_transformed = {
+        "experiment_name": experiment_name,
+        "SNR_all": SNR_all,
+        "save_figs_dir": output_dir,
+        "parameter_labels": model_parameters[experiment_name],
+    }
+
     for SNR in SNR_all:
         timer_SNR = timeit.default_timer()
         
@@ -251,6 +311,8 @@ for experiment_name, experiment_cls in experiments_to_run.items():
         dense_test = experiment.create_data_dense(
             snr=SNR
         )
+
+        data_dense["test"] = dense_test
 
         # ------------------------------------------
         # Dense prediction
@@ -272,16 +334,16 @@ for experiment_name, experiment_cls in experiments_to_run.items():
             data_classical["test"]
         )
 
-        # ------------------------------------------
-        # TADRED fixed-SNR prediction
-        # ------------------------------------------
+        # # ------------------------------------------
+        # # TADRED fixed-SNR prediction
+        # # ------------------------------------------
 
-        tadred_indices = (
-            edmri.simulation
-            .extract_tadred_index(
-                tadred_result
-            )
-        )
+        # tadred_indices = (
+        #     edmri.simulation
+        #     .extract_tadred_index(
+        #         tadred_result
+        #     )
+        # )
 
         tadred_test = dense_test[
             :,
@@ -314,29 +376,29 @@ for experiment_name, experiment_cls in experiments_to_run.items():
         
                         
         results_plot[SNR] = dict(target=data_dense["test_tar"], 
-                                 predictions=predictions,
-                                 example_acquisition_param=example_acquisition_param,
-                                 example_voxel=example_voxel,
+                                predictions=predictions,
+                                example_acquisition_param=example_acquisition_param,
+                                example_voxel=example_voxel,
         )                    
-              
+            
         results_plot["parameter_labels"] = model_parameters[experiment_name]
         results_plot["acquisition_param_name"] = acquisition_param_name[experiment_name]
                 
         print(f"Time for {SNR} is {timeit.default_timer() - timer_SNR} sec")
 
+        if config.output.save_predictions:
+            #create a directory for the figure data
+            figure_data_dir = Path(results_plot["save_figs_dir"], "figure_data")
+            figure_data_dir.mkdir(parents=True, exist_ok=True)
+            log.info("Figure data directory: %s", figure_data_dir)
 
-        #create a directory for the figure data
-        figure_data_dir = Path(results_plot["save_figs_dir"], "figure_data")
-        figure_data_dir.mkdir(parents=True, exist_ok=True)
-        log.info("Figure data directory:", figure_data_dir)
-
-        np.save(
-            Path(
-                figure_data_dir,
-                f'{results_plot["experiment_name"]}_SNR{SNR}_predicted_vs_groundtruth_params_normalised.npy'  # Include the .npy extension
-            ),
-            results_plot  # This is the object to be saved
-        )
+            np.save(
+                Path(
+                    figure_data_dir,
+                    f'{results_plot["experiment_name"]}_SNR{SNR}_predicted_vs_groundtruth_params_normalised.npy'  # Include the .npy extension
+                ),
+                results_plot  # This is the object to be saved
+            )
         
             
         #for the predicted vs. ground truth plots, need to store the actual parameter values, not the normalised ones
@@ -347,14 +409,15 @@ for experiment_name, experiment_cls in experiments_to_run.items():
             TADRED=experiment.params_target_to_model_input_params(predictions['TADRED']),
         )
         
-        results_plot_transformed[SNR] = dict(
-            experiment_name=experiment_name, SNR_all=SNR_all, save_figs_dir=this_save_dir
-        )
-        
-        results_plot_transformed[SNR] = dict(target=experiment.params_target_to_model_input_params(data_dense["test_tar"]), 
-                                    predictions=predictions_transformed,)
+        results_plot_transformed[SNR] = {
+            "target": experiment.params_target_to_model_input_params(
+            data_dense["test_tar"]
+        ),
+            "predictions": predictions_transformed,
+        }
             
         results_plot_transformed["parameter_labels"] =  model_parameters[experiment_name]
+        results_plot_transformed["acquisition_param_name"] = acquisition_param_name[experiment_name]        
 
         #save the transformed results for the predicted vs. ground truth plots
         np.save(
@@ -365,18 +428,19 @@ for experiment_name, experiment_cls in experiments_to_run.items():
             results_plot_transformed  # This is the object to be saved
         )
 
-        #create a directory for the simulation data
-        sim_data_dir = Path(results_plot["save_figs_dir"], "data")
-        sim_data_dir.mkdir(parents=True, exist_ok=True)
-        log.info("Simulation data directory:", sim_data_dir)
-        #save the whole simulation data in a big dictionary
-        np.save(
-            Path(
-                sim_data_dir,
-                f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_all_simulated_data.npy'  # Include the .npy extension
-            ),
-            data_dense  # This is the object to be saved
-        )
+        if config.output.save_simulation_data:
+            #create a directory for the simulation data
+            sim_data_dir = Path(results_plot["save_figs_dir"], "data")
+            sim_data_dir.mkdir(parents=True, exist_ok=True)
+            log.info("Simulation data directory: %s", sim_data_dir)
+            #save the whole simulation data in a big dictionary
+            np.save(
+                Path(
+                    sim_data_dir,
+                    f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_all_simulated_data.npy'  # Include the .npy extension
+                ),
+                data_dense  # This is the object to be saved
+            )
 
         #save the acquisition schemes as txt files for easier access
         np.savetxt(
@@ -395,7 +459,7 @@ for experiment_name, experiment_cls in experiments_to_run.items():
             experiment.acquisition_scheme_classical,  # This is the object to be saved              
         fmt='%.6f'  # Format for floating-point numbers
         )   
-         
+        
 
         #also save the individual parts of the simulated data in separate files for easier access
         for split in ("train", "val", "test"):
@@ -416,21 +480,26 @@ for experiment_name, experiment_cls in experiments_to_run.items():
                 data_dense[split + "_tar"]  # This is the object to be saved
             )
 
-    #create a directory for the figures                
-    figure_dir = Path(results_plot["save_figs_dir"], "figures")
-    figure_dir.mkdir(parents=True, exist_ok=True)
-    log.info("Output figures directory:", figure_dir)
-    
-    #plot the barplots using the normalised data            
-    experiments.plotting.plot_barplots(results_plot)
-    
-    #plot the predicted vs. ground truth plots using the untransformed data            
-    experiments.plotting.plot_predicted_vs_target_params(results_plot_transformed)
+    if config.output.save_figures:
+        #create a directory for the figures                
+        figure_dir = Path(results_plot["save_figs_dir"], "figures")
+        figure_dir.mkdir(parents=True, exist_ok=True)
+        log.info("Output figures directory: %s", figure_dir)
         
-    #plot the signal from one voxel for each acquistion scheme
-    experiments.plotting.plot_example_voxels(results_plot)
+        #plot the barplots using the normalised data            
+        plotting.plot_barplots(results_plot)
+        
+        #plot the predicted vs. ground truth plots using the untransformed data            
+        plotting.plot_predicted_vs_target_params(results_plot_transformed)
+            
+        #plot the signal from one voxel for each acquistion scheme
+        plotting.plot_example_voxels(results_plot)
 
+            
         
-    
 
     print("Finished protocol optimisation experiment:", experiment_name)
+
+
+if __name__ == "__main__":
+    main()

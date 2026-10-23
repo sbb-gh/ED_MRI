@@ -1,0 +1,32 @@
+# Default configuration for simulated protocol optimisation experiments.
+
+experiments:
+  SANDI: true
+  ADC: true
+  T1INV: true
+
+#number of voxels in the simulation datasets
+simulation:
+  n_train: 100000
+  n_val: 10000
+  n_test: 10000
+
+  snr_train_range: [10, 50]
+  snr_test_values: [10, 20, 30, 40, 50]
+
+training:
+  hidden_units: [1000, 1000]
+  epochs: null  # null = use TADRED default
+  no_gpu: false
+
+tadred:
+  n_iterations: 5
+  score_hidden_units: [1000, 1000]
+  task_hidden_units: [1000, 1000]
+  save_output: true
+
+output:
+  directory: results/paper_experiments
+  save_simulation_data: true
+  save_predictions: true
+  save_figures: true

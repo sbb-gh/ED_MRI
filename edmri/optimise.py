@@ -20,7 +20,8 @@ def optimise_experiment(
         mask=None,
         output_dir=None,
         random_state: int = 42,
-        n_iterations_tadred: int = 5,
+        n_iterations_tadred: int | None = None,
+        tadred_args=None,
         **kwargs,
 ):
     """
@@ -113,35 +114,50 @@ def optimise_experiment(
             )
         
 
-    # Neural network hyperparameters of TADRED
-    # TODO: move to config file
-    tadred_args = utils.load_base_args()
+    # Load TADRED defaults only when no configuration is supplied.
+    if tadred_args is None:
+        tadred_args = utils.load_base_args()
 
-    tadred_args.network.num_units_score = [1000, 1000]
-    tadred_args.network.num_units_task = [1000, 1000]
-    tadred_args.other_options.save_output = True
+    # Avoid modifying the caller's configuration.
+    tadred_args = tadred_args.copy()
 
-    # Base filename for saving the trained model and results
-    tadred_args.output.out_base = output_dir
+    # Configure output directory.
+    if output_dir is not None:
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    tadred_args.output.proj_name = "results" 
+        tadred_args.output.out_base = str(output_dir)
 
-    #these are the key user-defined options
+    # Determine acquisition subset sizes.
+    n_vol_superdesign = superdesign.shape[0]
 
-    n_vol_superdesign = superdesign.shape[0] #number of volumes in the oversampled superdesign    
+    if not 0 < opt_protocol_size <= 1:
+        raise ValueError("opt_protocol_size must be between 0 and 1.")
 
-    n_vol_opt_protocol = int(n_vol_superdesign * opt_protocol_size) #number of volumes in the desired optimized protocol
+    n_vol_opt_protocol = max(
+        1,
+        int(n_vol_superdesign * opt_protocol_size),
+    )
 
-    # Set linearly decreasing subset sizes  
+    n_iterations = (
+        n_iterations_tadred
+        if n_iterations_tadred is not None
+        else len(tadred_args.tadred_train_eval.feature_set_sizes_Ci)
+    )
+
+    if n_iterations < 2:
+        raise ValueError("TADRED requires at least two subset sizes.")
+
     feature_set_sizes = np.linspace(
         n_vol_superdesign,
         n_vol_opt_protocol,
-        n_iterations_tadred,
+        n_iterations,
         dtype=int,
     ).tolist()
 
     tadred_args.tadred_train_eval.feature_set_sizes_Ci = feature_set_sizes
     tadred_args.tadred_train_eval.feature_set_sizes_evaluated = feature_set_sizes
+
 
     tadred_result, tadred_model = tadred_main.run(tadred_args, data)
 
@@ -156,9 +172,23 @@ def optimise_experiment(
     # Chosen acquisition parameters
     optimised_protocol = superdesign[acq_params_tadred_index]
 
-    np.savetxt(Path(output_dir, tadred_args.output.proj_name, "optimised_indices.txt"),acq_params_tadred_index,fmt="%d")
-    
-    np.savetxt(Path(output_dir, tadred_args.output.proj_name, "optimised_protocol.txt"), optimised_protocol, fmt="%s")
+    if output_dir is not None:
+        protocol_dir = (
+            Path(output_dir) / tadred_args.output.proj_name
+        )
+        protocol_dir.mkdir(parents=True, exist_ok=True)
+
+        np.savetxt(
+            protocol_dir / "optimised_indices.txt",
+            acq_params_tadred_index,
+            fmt="%d",
+        )
+
+        np.savetxt(
+            protocol_dir / "optimised_protocol.txt",
+            optimised_protocol,
+            fmt="%.6f",
+        )
 
 
     return tadred_result, tadred_model, optimised_protocol, acq_params_tadred_index
