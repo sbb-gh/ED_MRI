@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 from networkx import config
 from omegaconf import OmegaConf
+from sympy import arg
 
 from .optimise import optimise_experiment
 
@@ -9,6 +10,8 @@ from .apply import apply_task_network
 
 from .helpers import get_config_hash
 from .helpers import load_existing_results
+
+from tadred import utils
 
 import shutil
 
@@ -19,10 +22,16 @@ def optimise_cli():
 
     parser.add_argument(
         "--config",
-        required=True,
+        default="edmri/conf/optimise_default.yaml",
         help="Path to YAML configuration file.",
     )
 
+    parser.add_argument(
+        "--no-hash",
+        action="store_true",
+        help="Save results to the examples directory instead of a hashed directory.",
+    )
+    
     parser.add_argument(
         "--force",
         action="store_true",
@@ -34,8 +43,12 @@ def optimise_cli():
     config = OmegaConf.merge(OmegaConf.load(arg.config), OmegaConf.from_dotlist(overrides))
 
     #make a hash of the config to use as a unique identifier for the experiment
-    config_hash = get_config_hash(config)
-    experiment_dir = Path(config.output.directory) / config_hash
+    config_hash = None if arg.no_hash else get_config_hash(config)
+
+    experiment_dir = Path(config.output.directory) / (
+        "examples" if arg.no_hash else config_hash
+    )
+    
     completed_flag_path = experiment_dir / "completed.flag"
 
 
@@ -62,7 +75,12 @@ def optimise_cli():
     # Save the configuration to the experiment directory
     OmegaConf.save(config,experiment_dir / "config.yaml",resolve=True)
 
+    #set up the tadred arguments from the config
+    tadred_args = utils.load_base_args()
 
+    tadred_args.network.num_units_score = config.training.network.num_units_score
+    tadred_args.network.num_units_task = config.training.network.num_units_task
+    
     # Run optimisation
     optimise_experiment(
         input_data=config.data.input,
@@ -74,6 +92,7 @@ def optimise_cli():
         random_state=config.optimisation.random_state,
         output_dir=experiment_dir,
         config_hash=config_hash,
+        tadred_args=tadred_args,
         force=config.output.force,
     )
 
@@ -86,10 +105,14 @@ def apply_cli():
 
     parser = argparse.ArgumentParser(
         description="Apply a trained TADRED model to MRI data."
+    )    
+    
+    parser.add_argument(
+        "--config",
+        default="edmri/conf/apply_default.yaml",
+        help="Path to YAML configuration file.",
     )
-
-    parser.add_argument("--config", required=True)
-
+        
     parser.add_argument(
         "--force",
         action="store_true",
@@ -102,7 +125,9 @@ def apply_cli():
 
     #make a hash of the config to use as a unique identifier for the experiment
     config_hash = get_config_hash(config)
+
     experiment_dir = Path(config.output.directory) / config_hash
+    
     completed_flag_path = experiment_dir / "completed.flag"
 
     if completed_flag_path.exists() and not arg.force:

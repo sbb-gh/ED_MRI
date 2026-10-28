@@ -57,7 +57,7 @@ def main():
 
 
 def run_experiment(experiment_name, experiment_cls, config):
-    output_dir = Path(config.output.directory) / experiment_name
+    output_dir = Path(config.output.directory) / experiment_name 
     output_dir.mkdir(parents=True, exist_ok=True)
 
     OmegaConf.save(
@@ -266,8 +266,9 @@ def run_experiment(experiment_name, experiment_cls, config):
     if config.training.epochs is not None:
         tadred_args.tadred_train_eval.epochs = config.training.epochs
 
-    tadred_args.output.proj_name = experiment_name 
+    tadred_args.output.proj_name = "tadred_output"
     
+    print(output_dir)
     (
         tadred_result,
         tadred_model,
@@ -430,7 +431,7 @@ def run_experiment(experiment_name, experiment_cls, config):
 
         if config.output.save_simulation_data:
             #create a directory for the simulation data
-            sim_data_dir = Path(results_plot["save_figs_dir"], "data")
+            sim_data_dir = Path(results_plot["save_figs_dir"], "simulation_data")
             sim_data_dir.mkdir(parents=True, exist_ok=True)
             log.info("Simulation data directory: %s", sim_data_dir)
             #save the whole simulation data in a big dictionary
@@ -441,44 +442,52 @@ def run_experiment(experiment_name, experiment_cls, config):
                 ),
                 data_dense  # This is the object to be saved
             )
+            
+            #also save the individual parts of the simulated data in separate files for easier access
+            for split in ("train", "val", "test"):
+                np.save(
+                    Path(
+                        sim_data_dir,
+                        f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_{split}_simulated_signals.npy'  # Include the .npy extension
+                    ),
+                    data_dense[split]  # This is the object to be saved
+                )
+            #and save the individual parts of the simulated target parameters in separate files for easier access
+            for split in ("train", "val", "test"):
+                np.save(
+                    Path(
+                        sim_data_dir,
+                        f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_{split}_simulated_gt_params.npy'  # Include the .npy extension
+                    ),
+                    data_dense[split + "_tar"]  # This is the object to be saved
+                )
+                        
 
-        #save the acquisition schemes as txt files for easier access
-        np.savetxt(
-            Path(
-                sim_data_dir,
-                f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_protocol_superdesign.txt'  # Include the .txt extension
-            ),
-            experiment.acquisition_scheme_dense,  # This is the object to be saved
+        if config.output.save_simulation_protocols:
+            #create a directory for the simulation data
+            sim_protocol_dir = Path(results_plot["save_figs_dir"], "simulation_protocols")
+            sim_protocol_dir.mkdir(parents=True, exist_ok=True)
+            log.info("Simulation protocols directory: %s", sim_protocol_dir)
+            #save the whole simulation data in a big dictionary
+                    
+            #save the acquisition schemes as txt files 
+            np.savetxt(
+                Path(
+                    sim_protocol_dir,
+                    f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_superdesign_protocol.txt'  # Include the .txt extension
+                ),
+                experiment.acquisition_scheme_dense,  # This is the object to be saved
+                fmt='%.6f'  # Format for floating-point numbers
+            )
+            np.savetxt(
+                Path(
+                    sim_protocol_dir,
+                    f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_crlb_protocol.txt'  # Include the .txt extension
+                ),
+                experiment.acquisition_scheme_classical,  # This is the object to be saved              
             fmt='%.6f'  # Format for floating-point numbers
-        )
-        np.savetxt(
-            Path(
-                sim_data_dir,
-                f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_protocol_classical.txt'  # Include the .txt extension
-            ),
-            experiment.acquisition_scheme_classical,  # This is the object to be saved              
-        fmt='%.6f'  # Format for floating-point numbers
-        )   
-        
-
-        #also save the individual parts of the simulated data in separate files for easier access
-        for split in ("train", "val", "test"):
-            np.save(
-                Path(
-                    sim_data_dir,
-                    f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_{split}_simulated_signals.npy'  # Include the .npy extension
-                ),
-                data_dense[split]  # This is the object to be saved
-            )
-        #and save the individual parts of the simulated target parameters in separate files for easier access
-        for split in ("train", "val", "test"):
-            np.save(
-                Path(
-                    sim_data_dir,
-                    f'{results_plot_transformed["experiment_name"]}_SNR{SNR}_{split}_simulated_gt_params.npy'  # Include the .npy extension
-                ),
-                data_dense[split + "_tar"]  # This is the object to be saved
-            )
+            )   
+              
 
     if config.output.save_figures:
         #create a directory for the figures                

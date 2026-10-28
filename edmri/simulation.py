@@ -42,9 +42,10 @@ def get_acquisition_scheme(experiment, scheme_name: str, tadred_result=None):
     return acquisition_scheme
 
 class SimulationsFitting:
-    def __init__(self):
+    def __init__(self, initialise_classical: bool = True):
         self.set_acquisition_scheme_dense()
-        self.set_acquisition_scheme_classical()
+        if initialise_classical:
+            self.set_acquisition_scheme_classical()
         self.create_model()
 
     def create_model(self):
@@ -127,12 +128,12 @@ class SimulationsFitting:
 
 
 class ADC(SimulationsFitting):
-    def __init__(self):
+    def __init__(self, initialise_classical: bool = True):
         self.minb = 0
         self.maxb = 5
         self.minD = 0.1
         self.maxD = 3        
-        super().__init__()
+        super().__init__(initialise_classical=initialise_classical)
 
     def create_model(self):
         def adc_model(bval, D):
@@ -344,7 +345,7 @@ class T1INV(SimulationsFitting):
 
 class SANDI(SimulationsFitting):
 
-    def __init__(self):
+    def __init__(self, initialise_classical: bool = True):
 
         self.min_f_neurite = 0.01
         self.max_f_neurite = 0.99
@@ -361,7 +362,7 @@ class SANDI(SimulationsFitting):
         self.min_R_soma = 1.0
         self.max_R_soma = 12.0
 
-        super().__init__()
+        super().__init__(initialise_classical=initialise_classical)
 
 
     def create_model(self):

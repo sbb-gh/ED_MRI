@@ -7,9 +7,9 @@ experiments:
 
 #number of voxels in the simulation datasets
 simulation:
-  n_train: 100000
-  n_val: 10000
-  n_test: 10000
+  n_train: 10000
+  n_val: 1000
+  n_test: 1000
 
   snr_train_range: [10, 50]
   snr_test_values: [10, 20, 30, 40, 50]
@@ -28,5 +28,6 @@ tadred:
 output:
   directory: results/paper_experiments
   save_simulation_data: true
+  save_simulation_protocols: true
   save_predictions: true
   save_figures: true

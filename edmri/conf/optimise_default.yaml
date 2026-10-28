@@ -27,8 +27,8 @@ optimisation:
 
 training:
   network:
-    hidden_units_score: [1000, 1000]
-    hidden_units_task: [1000, 1000]
+    num_units_score: [1000, 1000]
+    num_units_task: [1000, 1000]
 
   optimiser:
     learning_rate: 0.001

@@ -17,6 +17,33 @@ The TADRED framework comprises a **subsampling network** and a **task nework**, 
 ![image](files/tadred-schematic.png)
 
 
+## Quick start
+You can optimise a protocol and train a corresponding task network with the following command line arguments:
+
+```
+edmri-optimise \
+data.input=examples/data/sandi/signals.npy \
+data.target=examples/data/sandi/targets.npy \
+data.superdesign=examples/data/sandi/sandi_superdesign_protocol.txt \
+--no-hash
+```
+
+And then simulate some data as follows
+
+```
+python -m examples.generate_simulation_data --protocol results/optimisation_results/examples/sandi_tadred_protocol.txt
+```
+
+
+And then apply the trained task network to new data with 
+
+```
+edmri-apply \
+task_network=results/optimisation_results/examples/tadred_results/trained_task_network.pt \ 
+data.input=examples/data/sandi/sandi_tadred_signals.npy
+```
+
+
 ## Typical usage pipeline
 
 The typical workflow we envisage for users of EDMRI is:
