@@ -1,18 +1,29 @@
 # EDMRI: A Machine Learning Framework for Experimental Design in Quantitative and Diffusion MRI
 
-EDMRI builds on [TADRED](https://github.com/sbb-gh/tadred) to optimise quantitative and diffusion MRI acquisition protocols for a specified task, such as parameter estimation.
+EDMRI is a machine learning framework for optimising quantitative and diffusion MRI acquisition protocols for a specific task, such as parameter estimation.
 
-The framework can optimise protocols using either oversampled real MRI data or simulated data. The optimised protocol and trained task network are intended for application to new real MRI acquisitions; simulated application data can also be used for testing and benchmarking.
+The framework produces two outputs: an **optimised acquisition protocol**, designed to efficiently perform the specified task, and a **trained task network**, which performs that task using data acquired with the optimised protocol.
+
+EDMRI requires an **MRI dataset with an extensive set of acquisitions**, which we call the *superdesign*. This dataset can be generated using either real or simulated MRI data.
 
 ## Framework overview
 
-This repo builds on the neural-network based algorithm TADRED (TAsk-DRiven Experimental Design in imaging) framework ([code](https://github.com/sbb-gh/tadred), [paper](https://proceedings.iclr.cc/paper_files/paper/2024/hash/aec2dfc4f5e19acf05c15587c889dbc4-Abstract-Conference.html)). The main additions are a series of wrapper functions that enable quick and easy optimisation of scanning protocols for quantitative and diffusion MRI.
+EDMRI builds on TADRED (TAsk-DRiven Experimental Design in imaging), a neural-network-based framework for optimising acquisition protocols ([code](https://github.com/sbb-gh/tadred), [paper](https://proceedings.iclr.cc/paper_files/paper/2024/hash/aec2dfc4f5e19acf05c15587c889dbc4-Abstract-Conference.html)). EDMRI provides wrapper functions that simplify the use of TADRED for quantitative and diffusion MRI.
 
-The TADRED framework comprises a **subsampling network** and a **task network**, which are trained jointly during optimisation. The subsampling network identifies the subpart of the data that best supports a task, e.g. parameter mapping, and the task network is trained to undertake that task.
+TADRED comprises two neural networks: a **subsampling network**, which identifies the acquisitions most informative for a specified task, and a **task network**, which learns to perform that task. These networks are trained jointly during optimisation.
 
+## EDMRI workflow
 
-## Schematic
-![image](files/tadred-schematic.png)
+The EDMRI workflow comprises three stages (illustrated below):
+
+1. **Prepare oversampled MRI data:** Define a comprehensive MRI acquisition protocol (the *superdesign*) and generate training data using either real MRI acquisitions or simulations.
+2. **Protocol optimisation:** Use TADRED to select an optimised subset of acquisitions and train a task-specific neural network.
+3. **Apply optimised protocol and task network
+:** Acquire real MRI data using the optimised acquisition protocol and apply the trained network to perform the task.
+
+### Schematic: The three stages of the EDMRI workflow
+
+![The three stages of the EDMRI workflow](files/tadred-schematic.png)
 
 ## Documentation
 

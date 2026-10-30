@@ -4,11 +4,13 @@
 
 ## Typical usage pipeline
 
-The typical EDMRI workflow consists of three stages:
+The typical EDMRI workflow comprises three stages:
 
-1. **Prepare oversampled data:** Define a comprehensive MRI acquisition protocol (the *superdesign*) and generate training data using either real MRI acquisitions or simulations.
-2. **Protocol optimisation:** Use TADRED to select an optimised subset of acquisitions and train a task-specific neural network.
-3. **Apply optimised protocol:** Acquire new real MRI data using the optimised protocol and apply the trained network to perform the task.
+1. **Prepare oversampled MRI data:** Define a comprehensive MRI acquisition protocol (the *superdesign*) and generate **paired input and target data** using either real MRI acquisitions or simulations. The input data contain MRI measurements acquired or simulated using the superdesign, while the target data represent the desired task outputs (e.g. quantitative parameter maps).
+
+2. **Protocol optimisation:** Use TADRED to identify the subset of acquisitions that best supports the specified task (the optimised acquisition protocol) and train a task network that performs the task using only measurements from this protocol.
+
+3. **Apply the optimised protocol and task network:** Acquire new real MRI data using the optimised acquisition protocol and apply the trained task network to generate the desired outputs. 
 
 There are two approaches to protocol optimisation:
 
@@ -17,7 +19,7 @@ There are two approaches to protocol optimisation:
 
 **Both approaches are intended to produce an optimised protocol and trained network that can be applied to real MRI data.** Simulated data can also be used during application for testing and benchmarking.
 
-### 1. Prepare oversampled data
+### 1. Prepare oversampled MRI data
 
 #### Step 1.1: Define the superdesign
 
@@ -66,7 +68,7 @@ This approach allows the acquisition protocol and task network to be optimised u
 - Input and target data must correspond to the same voxels or samples.
 - The number and order of acquisitions in the input data must match the rows of `superdesign.txt`.
 
-### 2. Optimise the acquisition protocol
+### 2. Protocol optimisation
 
 Once the superdesign, input data and target data have been prepared, run TADRED to optimise the acquisition protocol and train the task network.
 
@@ -98,7 +100,7 @@ This produces two main outputs:
 
 The `<UNIQUE_HASH>` directory identifies the specific optimisation run and its configuration.
 
-### 3. Apply the optimised protocol to new MRI data
+### 3. Apply the optimised protocol and task network
 
 **The primary application of EDMRI is to use the optimised protocol and trained task network on new real MRI data**, regardless of whether optimisation was performed using real or simulated data.
 
