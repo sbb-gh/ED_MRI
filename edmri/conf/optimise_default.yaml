@@ -6,9 +6,9 @@
 # ============================================================
 
 data:
-  input: data/signals.npy
-  target: data/parameters.npy
-  superdesign: data/superdesign.txt
+  input: examples/data/sandi/superdesign_signals.npy
+  target: examples/data/sandi/superdesign_targets.npy
+  superdesign: examples/data/sandi/superdesign_protocol.txt
   mask: null                  # Optional NIfTI mask
 
 # ============================================================
@@ -39,5 +39,5 @@ training:
 # ============================================================
 
 output:
-  directory: results/optimisation_results
+  directory: results/optimisation
   force: false

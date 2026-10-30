@@ -27,9 +27,9 @@ def optimise_cli():
     )
 
     parser.add_argument(
-        "--no-hash",
+        "--example",
         action="store_true",
-        help="Save results to the examples directory instead of a hashed directory.",
+        help="Run in example mode, using a fixed output directory instead of a configuration hash.",
     )
     
     parser.add_argument(
@@ -43,10 +43,10 @@ def optimise_cli():
     config = OmegaConf.merge(OmegaConf.load(arg.config), OmegaConf.from_dotlist(overrides))
 
     #make a hash of the config to use as a unique identifier for the experiment
-    config_hash = None if arg.no_hash else get_config_hash(config)
+    config_hash = None if arg.example else get_config_hash(config)
 
     experiment_dir = Path(config.output.directory) / (
-        "examples" if arg.no_hash else config_hash
+        "examples" if arg.example else config_hash
     )
     
     completed_flag_path = experiment_dir / "completed.flag"
@@ -112,6 +112,12 @@ def apply_cli():
         default="edmri/conf/apply_default.yaml",
         help="Path to YAML configuration file.",
     )
+    
+    parser.add_argument(
+        "--example",
+        action="store_true",
+        help="Run in example mode, using a fixed output directory instead of a configuration hash.",
+    )
         
     parser.add_argument(
         "--force",
@@ -124,9 +130,11 @@ def apply_cli():
     config = OmegaConf.merge(OmegaConf.load(arg.config),OmegaConf.from_dotlist(overrides))
 
     #make a hash of the config to use as a unique identifier for the experiment
-    config_hash = get_config_hash(config)
-
-    experiment_dir = Path(config.output.directory) / config_hash
+    config_hash = None if arg.example else get_config_hash(config)
+        
+    experiment_dir = Path(config.output.directory) / (
+        "examples" if arg.example else config_hash
+    )
     
     completed_flag_path = experiment_dir / "completed.flag"
 
@@ -158,7 +166,7 @@ def apply_cli():
         input_data=config.data.input,
         trained_task_network=config.task_network,
         mask=config.data.get("mask", None),
-        output_file=config.output.directory + "/predictions.npy",
+        output_file=experiment_dir / "predictions.npy",
     )
 
     # create a empty flag file to indicate that the experiment has completed successfully

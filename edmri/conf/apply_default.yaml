@@ -2,10 +2,10 @@
 # Copy this file and modify the paths for your experiments.
 
 data:
-  input: examples/data/sandi_tadred_signals.npy
+  input: examples/data/sandi/tadred_signals.npy
   mask: null
 
-task_network: results/optimisation_results/d15ed4fc7ac1/tadred_results/trained_task_network.pt
+task_network: results/optimisation/examples/tadred_results/trained_task_network.pt
 
 output:
-  directory: results/application_results
+  directory: results/application

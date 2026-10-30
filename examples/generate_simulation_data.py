@@ -123,7 +123,7 @@ def main():
     # Save model-specific files.
     
     protocol_name = "tadred" if args.protocol is not None else "superdesign"
-    prefix = f"{args.model.lower()}_{protocol_name}"
+    prefix = f"{protocol_name}"
 
     output_dir = args.output_dir / args.model.lower()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -136,12 +136,17 @@ def main():
         superdesign,
         fmt="%.8g",
 )
-
+    print("Simulated MRI data generation complete.")
     print(f"Model:       {args.model}")
-    print(f"Signals:     {signals.shape}")
-    print(f"Targets:     {targets.shape}")
-    print(f"Superdesign: {superdesign.shape}")
+    print(f"Signals dim:     {signals.shape}")
+    print(f"Targets dim:     {targets.shape}")
+    print(f"Protocol dim: {superdesign.shape}")
     print(f"Saved to:    {output_dir}")
+    if args.protocol is not None:
+        print(f"Protocol file: {args.protocol}")
+    else:
+        print("Protocol: Default superdesign for " f"{args.model}" " model.")
+
 
 
 if __name__ == "__main__":
