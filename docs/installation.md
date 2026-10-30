@@ -1,6 +1,6 @@
 # Installation
 
-[README](../README.md) · [Toy example](toy_example.md) · [Full walkthrough](full_walkthrough.md)
+[README](../README.md) · [Getting started](getting_started.md) · [Detailed guide](detailed_guide.md) . [Configuration files](config.md)
 
 This page covers environment setup and installation.
 
@@ -8,13 +8,13 @@ This page covers environment setup and installation.
 
 ## Installation
 
-We provide example instructions to first create an environment, then install packages within this environment.  We recommend users use an environment to isolate all modules from the global environment.
+We recommend installing EDMRI and its dependencies in a **Python virtual environment** to keep them isolated from other Python installations and packages.
 
-The steps below install everything in a top level directory called ```<INSTALL_DIR>``` which contains the virtual enviroment files, ED_MRI installation, and TADRED installation. This is the recommended structure and is assumed by some of the example notebooks.
+The instructions below assume a top-level directory, `<INSTALL_DIR>`, containing the virtual environment, EDMRI and TADRED installations. This directory structure is recommended because it is assumed by some of the example notebooks.
 
-We have given instuctions for a generic python version. We have sucessfully tested using various python versions but recommend using Python v3.10.4.  We recommend [pyenv](https://github.com/pyenv) for python version management.
+Although EDMRI has been successfully tested with several Python versions, we recommend **Python 3.10.4**. We also recommend [pyenv](https://github.com/pyenv/pyenv) for managing Python versions.
 
-The code is fully tested using PyTorch v2.0.0, cuda 11.7 on the GPU, dipy v1.5.0, nibabel v5.1.0, and dmipy v1.0.5.
+The code has been fully tested with **PyTorch 2.0.0**, **CUDA 11.7** (GPU), **DIPY 1.5.0**, **NiBabel 5.1.0** and **dmipy 1.0.5**.
 
 
 ### Installation Part 1: Directory set up
@@ -73,11 +73,19 @@ conda activate ED_MRI_env
 
 Now install TADRED and the dependencies using pip.
 
-After first updating pip, install TADRED
+After first updating pip, install EDMRI
 
 ```bash
 pip install --upgrade pip
-cd tadred
+cd ED_MRI
+pip install -e .
+```
+
+
+and TADRED
+
+```bash
+cd ../tadred
 pip install -e .
 ```
 

@@ -28,14 +28,17 @@ The EDMRI workflow comprises three stages (illustrated below):
 ## Documentation
 
 - **[Installation](docs/installation.md)** — environment setup and dependencies.
-- **[Toy example](docs/toy_example.md)** — a complete simulated SANDI example and its output files.
-- **[Full workflow walkthrough](docs/full_walkthrough.md)** — detailed protocol optimisation and application using real or simulated training data.
+- **[Getting started](docs/getting_started.md)** — a complete simulated SANDI example and its output files.
+- **[Detailed guide](docs/detailed_guide.md)** — detailed protocol optimisation and application using real or simulated training data.
+- **[Configuration files](config.md)** - details the YAML configuration files for experimental set up and tracking.
 - **[Developer and research notes](docs/developer.md)** — research reproduction and legacy tutorials.
 
 ## References
 
-- [TADRED code](https://github.com/sbb-gh/tadred)
-- [TADRED paper](https://proceedings.iclr.cc/paper_files/paper/2024/hash/aec2dfc4f5e19acf05c15587c889dbc4-Abstract-Conference.html)
+If you use EDMRI in your work please cite the accompanying TADRED paper 
+
+#### 1. Blumberg, S., Slator, P., & Alexander, D. (2024). **Experimental Design for Multi-Channel Imaging via Task-Driven Feature Selection.** *International Conference on Learning Representations (ICLR 2024).* [paper](https://proceedings.iclr.cc/paper_files/paper/2024/hash/aec2dfc4f5e19acf05c15587c889dbc4-Abstract-Conference.html), [code](https://github.com/sbb-gh/tadred)
+
 
 ## Contact
 

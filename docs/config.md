@@ -87,6 +87,24 @@ output:
 
   force: false	  # Whether to force an optimisation run to execute again.
 ```
+### Overriding configuration settings
+
+Any configuration setting can be overridden directly from the command line using:
+
+```bash
+edmri-optimise section.parameter=value
+```
+
+For example, to specify different input data, target data and superdesign:
+
+```bash
+edmri-optimise \
+    data.input=my_signals.npy \
+    data.target=my_targets.npy \
+    data.superdesign=my_protocol.txt
+```
+
+Multiple settings can be overridden simultaneously. Command-line values take precedence over those in the configuration file.
 
 ### Example: changing the optimised protocol size
 
@@ -143,6 +161,7 @@ It contains three main sections:
 data:
   # New MRI measurements acquired or simulated using
   # the optimised acquisition protocol.
+  # Supports simulated data (.npy) or real MRI data (.nii.gz).
   input: examples/data/sandi/tadred_signals.npy
 
   # Optional mask for NIfTI data.
@@ -181,24 +200,6 @@ edmri-apply \
 
 The trained network generates predictions for the specified task, such as quantitative MRI parameter maps.
 
-## Overriding configuration settings
-
-Any configuration setting can be overridden directly from the command line using:
-
-```bash
-edmri-optimise section.parameter=value
-```
-
-For example, to specify different input data, target data and superdesign:
-
-```bash
-edmri-optimise \
-    data.input=my_signals.npy \
-    data.target=my_targets.npy \
-    data.superdesign=my_protocol.txt
-```
-
-Multiple settings can be overridden simultaneously. Command-line values take precedence over those in the configuration file.
 
 ## Using alternative configuration files
 
@@ -231,4 +232,4 @@ This saves results to fixed example directories rather than configuration-specif
 
 For regular experiments, omit `--example` to keep results from different configurations separate.
 
-See the [Toy example](toy_example.md) for a complete demonstration of the EDMRI workflow.
+See [detailed guide](detailed_guide.md) for a complete demonstration of the EDMRI workflow.

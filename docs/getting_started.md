@@ -1,4 +1,4 @@
-# Toy example
+# Getting Started
 
 [README](../README.md) · [Installation](installation.md) · [Full walkthrough](full_walkthrough.md)
 

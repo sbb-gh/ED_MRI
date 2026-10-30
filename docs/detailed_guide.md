@@ -1,6 +1,6 @@
-# Full workflow walkthrough
+# Detailed guide
 
-[README](../README.md) · [Getting started](toy_example.md)
+[README](../README.md) · [Getting started](getting_started.md) . [Configuration files](config.md)
 
 ## Typical usage pipeline
 
