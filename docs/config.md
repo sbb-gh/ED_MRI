@@ -55,18 +55,13 @@ data:
 # ============================================================
 
 optimisation:
-  # Optimisation method.
-  method: tadred
+  method: tadred 	# Optimisation method.
 
-  # Fraction of superdesign acquisitions to retain.
-  # For example, 0.25 retains 25% of acquisitions.
-  protocol_size: 0.25
-
-  # Number of TADRED reduction stages.
-  n_iterations: 5
-
-  # Random seed for reproducibility.
-  random_state: 42
+  protocol_size: 0.25	# Fraction of superdesign acquisitions to retain.
+  
+  n_iterations: 5	# Number of TADRED reduction stages.
+  
+  random_state: 42	# Random seed for reproducibility.
 
 # ============================================================
 # TADRED training
@@ -74,26 +69,23 @@ optimisation:
 
 training:
   network:    
-    num_units_score: [1000, 1000] # Hidden layer sizes of the subsampling (score) network.
+    num_units_score: [1000, 1000]		# Hidden layer sizes of the subsampling (score) network.
     
-    num_units_task: [1000, 1000] # Hidden layer sizes of the task network.
+    num_units_task: [1000, 1000]		# Hidden layer sizes of the task network.
 
   optimiser:
-    learning_rate: 0.001 	# Neural network learning rate.
+    learning_rate: 0.001		# Neural network learning rate.
 
-    # Number of samples per training batch.
-    batch_size: 256
+    batch_size: 256		# Number of samples per training batch.
 
 # ============================================================
 # Output
 # ============================================================
 
-output:
-  # Directory for optimisation results.
-  directory: results/optimisation
+output:  
+  directory: results/optimisation		# Directory for optimisation results.
 
-  # Whether to force an optimisation run to execute again.
-  force: false
+  force: false	  # Whether to force an optimisation run to execute again.
 ```
 
 ### Example: changing the optimised protocol size
