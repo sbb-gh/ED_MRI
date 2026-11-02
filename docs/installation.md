@@ -4,18 +4,15 @@
 
 This page covers environment setup and installation.
 
-> **Note:** The installation and version details below are retained from the existing README and may need checking against the current package configuration.
-
 ## Installation
 
 We recommend installing EDMRI and its dependencies in a **Python virtual environment** to keep them isolated from other Python installations and packages.
 
 The instructions below assume a top-level directory, `<INSTALL_DIR>`, containing the virtual environment, EDMRI and TADRED installations. This directory structure is recommended because it is assumed by some of the example notebooks.
 
-Although EDMRI has been successfully tested with several Python versions, we recommend **Python 3.10.4**. We also recommend [pyenv](https://github.com/pyenv/pyenv) for managing Python versions.
+Although EDMRI has been successfully tested with several Python versions, we recommend **Python 3.14**. We also recommend [pyenv](https://github.com/pyenv/pyenv) for managing Python versions.
 
-The code has been fully tested with **PyTorch 2.0.0**, **CUDA 11.7** (GPU), **DIPY 1.5.0**, **NiBabel 5.1.0** and **dmipy 1.0.5**.
-
+To encourage continued development, improve robustness, and avoid unnecessary dependencies on older package versions, the relevant `pyproject.toml` files specify flexible dependency constraints rather than pinning exact versions. The code has been fully tested with **PyTorch 2.15**.
 
 ### Installation Part 1: Directory set up
 First create and move to the desired installation directory.
@@ -64,7 +61,7 @@ source .venv/bin/activate
 Conda documentation is [here](https://docs.conda.io/en/latest/).
 
 ```bash
-conda create -n ED_MRI_env python=3.10.4
+conda create -n ED_MRI_env
 conda activate ED_MRI_env
 ```
 
@@ -89,12 +86,7 @@ cd ../tadred
 pip install -e .
 ```
 
-and then the additional dependencies
-
-```bash
-pip install notebook matplotlib scipy nibabel
-```
-
+Installation should now be complete. To test EDMRI on simple simulated data, see [Getting started](getting_started.md). To work with your own data and experiments, see the [Detailed guide](detailed_guide.md).
 
 <!--#### TADRED dependencies
 
@@ -113,7 +105,7 @@ Required to run the example jupyter notebooks:
 pip install notebook
 ```-->
 
-#### [Optional] Full dependencies for replication of results
+<!--#### [Optional] Full dependencies for replication of results
 Optional modules to generate the data and run a full replication of the results: dipy, dmipy, nibabel. Note that dmipy is no longer supported and can often be difficult to install. If you are struggling try cloning this repo https://github.com/PaddySlator/dmipy into ```<INSTALL_DIR>``` instead.
 
 
@@ -122,7 +114,7 @@ pip install git+https://github.com/AthenaEPI/dmipy.git@1.0.1
 pip install dipy==1.9.0
 pip install nibabel==5.1.0
 ```
-
+-->
 
 <!--```bash
 pip install numpy==1.23.4 git+https://github.com/AthenaEPI/dmipy.git@1.0.1
