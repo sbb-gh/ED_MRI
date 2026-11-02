@@ -40,4 +40,3 @@ training:
 
 output:
   directory: results/optimisation
-  force: false

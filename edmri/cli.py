@@ -1,19 +1,13 @@
 import argparse
+import shutil
 from pathlib import Path
-from networkx import config
+
 from omegaconf import OmegaConf
-from sympy import arg
-
-from .optimise import optimise_experiment
-
-from .apply import apply_task_network
-
-from .helpers import get_config_hash
-from .helpers import load_existing_results
-
 from tadred import utils
 
-import shutil
+from .optimise import optimise_experiment
+from .apply import apply_task_network
+from .helpers import get_config_hash
 
 def optimise_cli():
     """Command-line interface for experiment optimisation."""
@@ -52,22 +46,23 @@ def optimise_cli():
     completed_flag_path = experiment_dir / "completed.flag"
 
 
+    # Check whether the experiment has already completed
     if completed_flag_path.exists() and not arg.force:
         print(
-            f"TADRED Optimisation experiment already completed: {experiment_dir}"
-            f"\nUse --force to re-run the experiment."
+            f"Experiment already completed: {experiment_dir}\n"
+            "Use --force to re-run the experiment."
         )
-        return 
+        return
 
-    #remove previous results if --force is used
-    if experiment_dir.exists(): 
-        if arg.force:
-            print(f"Removing previous results: {experiment_dir}")
-            shutil.rmtree(experiment_dir)
+    # Remove existing results if forcing a rerun or recovering
+    # from an incomplete experiment
+    if experiment_dir.exists():
+        if completed_flag_path.exists():
+            print(f"Forcing re-run of experiment: {experiment_dir}")
         else:
-            raise RuntimeError(
-                f"Experiment directory already exists but is incomplete: {experiment_dir}"
-            )
+            print(f"Removing incomplete experiment: {experiment_dir}")
+
+        shutil.rmtree(experiment_dir)
 
     #make the output directory for the experiment
     experiment_dir.mkdir(parents=True, exist_ok=True)
@@ -93,7 +88,7 @@ def optimise_cli():
         output_dir=experiment_dir,
         config_hash=config_hash,
         tadred_args=tadred_args,
-        force=config.output.force,
+        force=arg.force,
     )
 
     # create a empty flag file to indicate that the experiment has completed successfully
@@ -144,16 +139,17 @@ def apply_cli():
             f"\nUse --force to re-run the experiment."
         )
         return 
+    
 
-    #remove previous results if --force is used
-    if experiment_dir.exists(): 
-        if arg.force:
-            print(f"Removing previous results: {experiment_dir}")
-            shutil.rmtree(experiment_dir)
+    # Remove existing results if forcing a rerun or recovering
+    # from an incomplete experiment
+    if experiment_dir.exists():
+        if completed_flag_path.exists():
+            print(f"Forcing re-run of experiment: {experiment_dir}")
         else:
-            raise RuntimeError(
-                f"Experiment directory already exists but is incomplete: {experiment_dir}"
-            )
+            print(f"Removing incomplete experiment: {experiment_dir}")
+
+        shutil.rmtree(experiment_dir)
 
     #make the output directory for the experiment
     experiment_dir.mkdir(parents=True, exist_ok=True)
