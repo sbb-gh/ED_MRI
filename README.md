@@ -17,9 +17,9 @@ TADRED comprises two neural networks: a **subsampling network**, which identifie
 The EDMRI workflow comprises three stages (illustrated below):
 
 1. **Prepare oversampled MRI data:** Define a comprehensive MRI acquisition protocol (the *superdesign*) and generate training data using either real MRI acquisitions or simulations.
-2. **Protocol optimisation:** Use TADRED to select an optimised subset of acquisitions and train a task-specific neural network.
+2. **Protocol optimisation:** Use TADRED to identify an optimised acquisition protocol and train a task-specific network.
 3. **Apply optimised protocol and task network
-:** Acquire real MRI data using the optimised acquisition protocol and apply the trained network to perform the task.
+:** Acquire real MRI data using the optimised acquisition protocol and apply the trained task-specific network to perform the task.
 
 ### Schematic: The three stages of the EDMRI workflow
 

@@ -125,7 +125,7 @@ def main():
     protocol_name = "tadred" if args.protocol is not None else "superdesign"
     prefix = f"{protocol_name}"
 
-    output_dir = args.output_dir / args.model.lower()
+    output_dir = args.output_dir / args.model
     output_dir.mkdir(parents=True, exist_ok=True)
 
     np.save(output_dir / f"{prefix}_signals.npy", signals)

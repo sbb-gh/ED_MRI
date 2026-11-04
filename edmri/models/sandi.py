@@ -80,7 +80,7 @@ def _calculate_b(
     torch.Tensor
         b-value [s/m^2].
     """
-
+    
     return (
         GAMMA
         * G

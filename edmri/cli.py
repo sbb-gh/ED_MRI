@@ -20,10 +20,19 @@ def optimise_cli():
         help="Path to YAML configuration file.",
     )
 
+    # parser.add_argument(
+    #     "--example",
+    #     action="store_true",
+    #     help="Run in example mode, using a fixed output directory instead of a configuration hash.",
+    # )
+    
     parser.add_argument(
         "--example",
-        action="store_true",
-        help="Run in example mode, using a fixed output directory instead of a configuration hash.",
+        nargs="?",
+        const="test",
+        default=None,
+        metavar="SUBFOLDER",
+        help="Run in example mode, saving to examples/SUBFOLDER (default: examples/test).",
     )
     
     parser.add_argument(
@@ -33,15 +42,36 @@ def optimise_cli():
     )
 
     arg, overrides = parser.parse_known_args()
+    
+    
+    # Validate example subfolder
+    if arg.example is not None:
+        subfolder = Path(arg.example)
+
+        if (
+            arg.example in (".", "..")
+            or subfolder.is_absolute()
+            or len(subfolder.parts) != 1
+            or "/" in arg.example
+            or "\\" in arg.example
+            or ":" in arg.example
+        ):
+            parser.error(
+                "--example must be a single subfolder name, "
+                "not a path (e.g. --example SANDI)."
+            )
 
     config = OmegaConf.merge(OmegaConf.load(arg.config), OmegaConf.from_dotlist(overrides))
 
     #make a hash of the config to use as a unique identifier for the experiment
-    config_hash = None if arg.example else get_config_hash(config)
+    config_hash = None if arg.example is not None else get_config_hash(config)
 
     experiment_dir = Path(config.output.directory) / (
-        "examples" if arg.example else config_hash
+        Path("examples") / arg.example
+        if arg.example is not None
+        else config_hash
     )
+    
     
     completed_flag_path = experiment_dir / "completed.flag"
 
