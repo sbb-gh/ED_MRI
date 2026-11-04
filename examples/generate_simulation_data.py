@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
+import edmri
 from edmri import simulation
 
 
@@ -64,10 +65,12 @@ def main():
         help="Random seed (default: 42).",
     )
 
+    PROJECT_ROOT = Path(edmri.__file__).resolve().parent.parent
+
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("examples/data"),
+        default=PROJECT_ROOT / "examples/data",
         help="Directory for generated data.",
     )
 
@@ -137,15 +140,24 @@ def main():
         fmt="%.8g",
 )
     print("Simulated MRI data generation complete.")
-    print(f"Model:       {args.model}")
-    print(f"Signals dim:     {signals.shape}")
-    print(f"Targets dim:     {targets.shape}")
-    print(f"Protocol dim: {superdesign.shape}")
-    print(f"Saved to:    {output_dir}")
+    print(f"Model:              {args.model}")
+    print(f"Number of voxels:   {args.n_samples}")
+    print(f"Protocol length:    {superdesign.shape[0]}")
+    print(f"SNR range:          {args.snr_min} - {args.snr_max}")
+    print(f"Signals dim:        {signals.shape}")
+    print(f"Targets dim:        {targets.shape}")
+    print(f"Protocol dim:       {superdesign.shape}")
+    
     if args.protocol is not None:
-        print(f"Protocol file: {args.protocol}")
+        print(f"Protocol file:      {args.protocol}")
     else:
-        print("Protocol: Default superdesign for " f"{args.model}" " model.")
+        print("Protocol:            Default superdesign for " f"{args.model}" " model.")
+
+    print(f"Saved to:           {output_dir}")
+    print(
+        f"  - {prefix}_signals.npy: simulated MRI signals\n"
+        f"  - {prefix}_targets.npy: corresponding ground-truth model parameters\n"
+    )
 
 
 

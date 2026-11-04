@@ -1,11 +1,14 @@
 # Default configuration for edmri-apply.
 # Copy this file and modify the paths for your experiments.
 
+paths:
+  root: null
+
 data:
-  input: examples/data/sandi/tadred_signals.npy
+  input: ${paths.root}/examples/data/sandi/tadred_signals.npy
   mask: null
 
-task_network: results/optimisation/examples/tadred_results/trained_task_network.pt
+task_network: ${paths.root}/results/optimisation/examples/tadred_results/trained_task_network.pt
 
 output:
-  directory: results/application
+  directory: ${paths.root}/results/application

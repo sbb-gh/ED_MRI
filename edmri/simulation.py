@@ -128,6 +128,9 @@ class SimulationsFitting:
 
 
 class ADC(SimulationsFitting):
+
+    PARAM_NAMES = ["ADC"]
+
     def __init__(self, initialise_classical: bool = True):
         self.minb = 0
         self.maxb = 5
@@ -282,12 +285,15 @@ class ADC(SimulationsFitting):
 
 
 class T1INV(SimulationsFitting):
-    def __init__(self):
+        
+    PARAM_NAMES = ["T1"]
+
+    def __init__(self, initialise_classical: bool = True):
         self.minTi = 0.1
         self.maxTi = 7
         self.minT1 = 0.1
         self.maxT1 = 7
-        super().__init__()
+        super().__init__(initialise_classical=initialise_classical)
 
     def create_model(self):
         def t1_model(ti, T1, tr=7):
@@ -344,6 +350,14 @@ class T1INV(SimulationsFitting):
 
 
 class SANDI(SimulationsFitting):
+
+    PARAM_NAMES = [
+        "f_neurite",
+        "f_soma",
+        "D_neurite",
+        "D_extra",
+        "R_soma",
+    ]
 
     def __init__(self, initialise_classical: bool = True):
 
@@ -452,58 +466,44 @@ class SANDI(SimulationsFitting):
         num_samples: int,
     ):
 
-        params = []
 
-        while len(params) < num_samples:
-
-            f_neurite = np.random.uniform(
-                self.min_f_neurite,
-                self.max_f_neurite,
-            )
-
-            f_soma = np.random.uniform(
-                self.min_f_soma,
-                self.max_f_soma,
-            )
-
-            if (
-                f_neurite
-                + f_soma
-                >= 0.95
-            ):
-                continue
-
-            D_neurite = np.random.uniform(
-                self.min_D_neurite,
-                self.max_D_neurite,
-            )
-
-            D_extra = np.random.uniform(
-                self.min_D_extra,
-                self.max_D_extra,
-            )
-
-            R_soma = np.random.uniform(
-                self.min_R_soma,
-                self.max_R_soma,
-            )
-
-            params.append([
-                f_neurite,
-                f_soma,
-                D_neurite,
-                D_extra,
-                R_soma,
-            ])
-
-        self.params_for_model = np.asarray(
-            params,
-            dtype=np.float32,
+        # Sample compartment fractions from a Dirichlet distribution
+        fractions = np.random.dirichlet(
+            alpha=[1, 1, 1],
+            size=num_samples,
         )
 
-        self.params_target = (
-            self.params_for_model.copy()
+        f_neurite = fractions[:, 0]
+        f_soma = fractions[:, 1]
+
+
+        D_neurite = np.random.uniform(
+            self.min_D_neurite,
+            self.max_D_neurite,
+            size=num_samples,
         )
+
+        D_extra = np.random.uniform(
+            self.min_D_extra,
+            self.max_D_extra,
+            size=num_samples,
+        )
+
+        R_soma = np.random.uniform(
+            self.min_R_soma,
+            self.max_R_soma,
+            size=num_samples,
+        )
+
+        self.params_for_model = np.column_stack([
+            f_neurite,
+            f_soma,
+            D_neurite,
+            D_extra,
+            R_soma,
+        ]).astype(np.float32)
+
+        self.params_target = self.params_for_model.copy()   
 
 
     def set_acquisition_scheme_dense(

@@ -3,11 +3,19 @@ import shutil
 from pathlib import Path
 
 from omegaconf import OmegaConf
+import edmri
 from tadred import utils
 
 from .optimise import optimise_experiment
 from .apply import apply_task_network
 from .helpers import get_config_hash
+
+def resolve_path(path, root):
+    if path is None:
+        return None
+
+    path = Path(path).expanduser()
+    return path if path.is_absolute() else root / path
 
 def optimise_cli():
     """Command-line interface for experiment optimisation."""
@@ -43,30 +51,29 @@ def optimise_cli():
 
     arg, overrides = parser.parse_known_args()
     
-    
-    # Validate example subfolder
-    if arg.example is not None:
-        subfolder = Path(arg.example)
 
-        if (
-            arg.example in (".", "..")
-            or subfolder.is_absolute()
-            or len(subfolder.parts) != 1
-            or "/" in arg.example
-            or "\\" in arg.example
-            or ":" in arg.example
-        ):
-            parser.error(
-                "--example must be a single subfolder name, "
-                "not a path (e.g. --example SANDI)."
-            )
+    #locate the project root (parent of edmri package)
+    project_root = Path(edmri.__file__).resolve().parent.parent
 
-    config = OmegaConf.merge(OmegaConf.load(arg.config), OmegaConf.from_dotlist(overrides))
+    project_root = Path(edmri.__file__).resolve().parent.parent
+
+    config_path = Path(arg.config)
+    if not config_path.is_absolute():
+        config_path = project_root / config_path
+
+    config = OmegaConf.merge(
+        OmegaConf.load(config_path),
+        OmegaConf.from_dotlist(overrides),
+    )
+
+    # set the root path in the config to the project root
+    if config.paths.root is None:
+        config.paths.root = str(project_root)
 
     #make a hash of the config to use as a unique identifier for the experiment
     config_hash = None if arg.example is not None else get_config_hash(config)
 
-    experiment_dir = Path(config.output.directory) / (
+    experiment_dir = project_root / config.output.directory / (
         Path("examples") / arg.example
         if arg.example is not None
         else config_hash
@@ -140,8 +147,11 @@ def apply_cli():
     
     parser.add_argument(
         "--example",
-        action="store_true",
-        help="Run in example mode, using a fixed output directory instead of a configuration hash.",
+        nargs="?",
+        const="test",
+        default=None,
+        metavar="SUBFOLDER",
+        help="Run in example mode, saving to examples/SUBFOLDER (default: examples/test).",
     )
         
     parser.add_argument(
@@ -152,14 +162,33 @@ def apply_cli():
 
     arg, overrides = parser.parse_known_args()
 
-    config = OmegaConf.merge(OmegaConf.load(arg.config),OmegaConf.from_dotlist(overrides))
+    #locate the project root (parent of edmri package)
+    project_root = Path(edmri.__file__).resolve().parent.parent
+
+    config_path = Path(arg.config)
+    if not config_path.is_absolute():
+        config_path = project_root / config_path
+
+    config = OmegaConf.merge(
+        OmegaConf.load(config_path),
+        OmegaConf.from_dotlist(overrides),
+    )
+
+    # set the root path in the config to the project root
+    if config.paths.root is None:
+        config.paths.root = str(project_root)
+
 
     #make a hash of the config to use as a unique identifier for the experiment
-    config_hash = None if arg.example else get_config_hash(config)
+    config_hash = None if arg.example is not None else get_config_hash(config)
+
+    experiment_dir = project_root / config.output.directory / (
+            Path("examples") / arg.example
+            if arg.example is not None
+            else config_hash
+        )
         
-    experiment_dir = Path(config.output.directory) / (
-        "examples" if arg.example else config_hash
-    )
+ 
     
     completed_flag_path = experiment_dir / "completed.flag"
 
