@@ -7,9 +7,9 @@ experiments:
 
 #number of voxels in the simulation datasets
 simulation:
-  n_train: 10000
-  n_val: 1000
-  n_test: 1000
+  n_train: 1000
+  n_val: 100
+  n_test: 100
 
   snr_train_range: [10, 50]
   snr_test_values: [10, 20, 30, 40, 50]
