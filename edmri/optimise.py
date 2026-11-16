@@ -68,6 +68,12 @@ def optimise_experiment(
         Dictionary containing the complete TADRED optimisation results.
     """
 
+    print(
+        "\n"
+        "Starting TADRED Protocol Optimisation\n"
+        "====================================\n"
+    )
+    
     if presplit_data is None:
         # Load input and target data.
         input_data = load_array(input_data, mask=mask)
@@ -173,21 +179,39 @@ def optimise_experiment(
     optimised_protocol = superdesign[acq_params_tadred_index]
 
     if output_dir is not None:
-        protocol_dir = (
-            Path(output_dir) / tadred_args.output.proj_name
-        )
+        protocol_dir = Path(output_dir) / tadred_args.output.proj_name
         protocol_dir.mkdir(parents=True, exist_ok=True)
 
+        indices_path = protocol_dir / "optimised_indices.txt"
+        protocol_path = protocol_dir / "optimised_protocol.txt"
+
         np.savetxt(
-            protocol_dir / "optimised_indices.txt",
+            indices_path,
             acq_params_tadred_index,
             fmt="%d",
         )
 
         np.savetxt(
-            protocol_dir / "optimised_protocol.txt",
+            protocol_path,
             optimised_protocol,
             fmt="%.6f",
+        )
+
+        print(
+            "\n"
+            "Saving Optimisation Results\n"
+            "---------------------------\n"
+            f"  Optimised indices:  {indices_path}\n"
+            f"  Optimised protocol: {protocol_path}\n"
+        )
+
+        print(
+            "\n"
+            "Protocol Optimisation Complete\n"
+            "============================\n"
+            "To estimate target parameters from new data:\n"
+            "  1. Acquire data using optimised_protocol.txt.\n"
+            "  2. Run 'edmri-apply' with the new data and trained task network.\n"
         )
 
 
